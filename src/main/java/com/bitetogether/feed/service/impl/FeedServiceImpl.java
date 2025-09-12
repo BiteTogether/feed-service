@@ -28,15 +28,15 @@ public class FeedServiceImpl implements FeedService {
         ApiResponse<Feed> response;
         try{
             Feed newFeed = feedRepository.save(feedMapper.toFeed(feed));
-            response = ApiResponseUtil.of(
+            response = ApiResponseUtil.buildResponse(
                     ApiResponseStatus.SUCCESS,
-                    "Feed created successfully",
+                    ApiResponseStatus.SUCCESS.getDefaultMessage(),
                     newFeed
             );
         } catch (Exception e) {
-            response = ApiResponseUtil.of(
+            response = ApiResponseUtil.buildResponse(
                     ApiResponseStatus.ERROR,
-                    "Error creating feed: " + e.getMessage(),
+                    "Creating feed error: " + e.getMessage(),
                     null
             );
         }
