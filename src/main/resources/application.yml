@@ -6,6 +6,10 @@ server:
 spring:
   application:
     name: feed-service
+  profiles:
+    include:
+      - security
+      - openapi
   datasource:
     url: ${POSTGRES_URL}
     username: ${POSTGRES_USER}
