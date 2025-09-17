@@ -1,11 +1,15 @@
 server:
   port: ${SERVER_PORT}
   servlet:
-    context-path: /feed
+    context-path: /feeds
 
 spring:
   application:
     name: feed-service
+  profiles:
+    include:
+      - security
+      - openapi
   datasource:
     url: ${POSTGRES_URL}
     username: ${POSTGRES_USER}
