@@ -1,7 +1,7 @@
 server:
   port: ${SERVER_PORT}
   servlet:
-    context-path: /feed
+    context-path: /feeds
 
 spring:
   application:

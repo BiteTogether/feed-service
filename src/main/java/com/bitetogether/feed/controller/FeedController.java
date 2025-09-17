@@ -30,7 +30,7 @@ public class FeedController {
         return  ResponseEntity.ok(response);
     }
 
-    @GetMapping("/get-feeds/{userId}")
+    @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse<List<Feed>>> getFeedByUserId(@PathVariable Long userId) {
         ApiResponse<List<Feed>> response = feedService.getFeedByUserId(userId);
         return ResponseEntity.ok(response);
