@@ -24,25 +24,25 @@ public class FeedController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/get-by-id/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<Feed>> getFeedById(@PathVariable Long id) {
         ApiResponse<Feed> response = feedService.getFeedById(id);
         return  ResponseEntity.ok(response);
     }
 
-    @GetMapping("/get-by-user-id/{userId}")
+    @GetMapping("/get-feeds/{userId}")
     public ResponseEntity<ApiResponse<List<Feed>>> getFeedByUserId(@PathVariable Long userId) {
         ApiResponse<List<Feed>> response = feedService.getFeedByUserId(userId);
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/update/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<Feed>> updateFeed(@PathVariable Long id, @RequestBody FeedDTO feedDTO) {
         ApiResponse<Feed> response = feedService.updateFeed(id, feedDTO);
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<String>> deleteFeed(@PathVariable Long id) {
         ApiResponse<String> response = feedService.deleteFeed(id);
         return ResponseEntity.ok(response);
