@@ -1,7 +1,5 @@
 server:
   port: ${SERVER_PORT}
-  servlet:
-    context-path: /feeds
 
 spring:
   application:
@@ -10,15 +8,6 @@ spring:
     include:
       - security
       - openapi
-  datasource:
-    url: ${POSTGRES_URL}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
+      - jwt
+      - database
+
