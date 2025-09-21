@@ -1,6 +1,7 @@
 package com.bitetogether.feed.service.impl;
 
 import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
 import com.bitetogether.feed.dto.FeedDTO;
@@ -12,6 +13,8 @@ import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,20 +67,27 @@ public class FeedServiceImpl implements FeedService {
             .orElseThrow(() -> new RuntimeException("Feed not found with id: " + id));
     response =
         ApiResponseUtil.buildApiResponse(
-            ApiResponseStatus.SUCCESS, ApiResponseStatus.SUCCESS.getDefaultMessage(), feed);
+            ApiResponseStatus.SUCCESS,
+                ApiResponseStatus.SUCCESS.getDefaultMessage(),
+                feed
+        );
     return response;
   }
 
   @Override
   @Transactional
-  public ApiResponse<List<Feed>> getFeedByUserId(Long userId) {
-    ApiResponse<List<Feed>> response;
-    List<Feed> feeds = feedRepository.findAllByUserId(userId);
+  public ApiResponsePagination<List<Feed>> getFeedByUserId(Long userId, Pageable pageable) {
+      ApiResponsePagination<List<Feed>> response;
+    Page<Feed> feeds = feedRepository.findAllByUserId(userId, pageable);
     response =
         ApiResponseUtil.buildApiResponse(
             ApiResponseStatus.SUCCESS,
             ApiResponseStatus.SUCCESS.getDefaultMessage(),
-            feeds.isEmpty() ? null : feeds);
+            feeds.getContent().isEmpty() ? null : feeds.getContent(),
+            feeds.getNumber(),
+            feeds.getTotalPages(),
+            feeds.getTotalElements()
+        );
     return response;
   }
 
