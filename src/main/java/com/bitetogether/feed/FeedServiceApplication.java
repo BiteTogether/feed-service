@@ -4,12 +4,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.bitetogether.feed", "com.bitetogether.common"})
 @EnableTransactionManagement
 public class FeedServiceApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(FeedServiceApplication.class, args);
-    }
-
+  public static void main(String[] args) {
+    SpringApplication.run(FeedServiceApplication.class, args);
+  }
 }
