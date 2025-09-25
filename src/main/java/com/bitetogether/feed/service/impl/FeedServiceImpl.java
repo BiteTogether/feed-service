@@ -67,17 +67,14 @@ public class FeedServiceImpl implements FeedService {
             .orElseThrow(() -> new RuntimeException("Feed not found with id: " + id));
     response =
         ApiResponseUtil.buildApiResponse(
-            ApiResponseStatus.SUCCESS,
-                ApiResponseStatus.SUCCESS.getDefaultMessage(),
-                feed
-        );
+            ApiResponseStatus.SUCCESS, ApiResponseStatus.SUCCESS.getDefaultMessage(), feed);
     return response;
   }
 
   @Override
   @Transactional
   public ApiResponsePagination<List<Feed>> getFeedByUserId(Long userId, Pageable pageable) {
-      ApiResponsePagination<List<Feed>> response;
+    ApiResponsePagination<List<Feed>> response;
     Page<Feed> feeds = feedRepository.findAllByUserId(userId, pageable);
     response =
         ApiResponseUtil.buildApiResponse(
@@ -86,8 +83,7 @@ public class FeedServiceImpl implements FeedService {
             feeds.getContent().isEmpty() ? null : feeds.getContent(),
             feeds.getNumber(),
             feeds.getTotalPages(),
-            feeds.getTotalElements()
-        );
+            feeds.getTotalElements());
     return response;
   }
 
