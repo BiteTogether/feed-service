@@ -1,12 +1,18 @@
-# Use a JDK base image to build the app
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+# Build stage: copy only necessary files
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
-COPY . .
-RUN mvn clean package -DskipTests
+COPY src src
+COPY pom.xml pom.xml
+COPY .env .env
+COPY settings.xml /root/.m2/settings.xml
+RUN export $(grep -v '^#' .env | xargs) && mvn clean package -s /root/.m2/settings.xml -DskipTests
 
-# Use a lightweight JRE image to run the app
-FROM eclipse-temurin:17-jre-alpine
+# Run stage
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/.env .env
 EXPOSE 8082
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+# Load .env variables and run the app
+ENTRYPOINT ["/bin/sh", "-c", "export $(grep -v '^#' .env | xargs) && java -jar app.jar"]
