@@ -1,8 +1,6 @@
 package com.bitetogether.feed.repository;
 
 import com.bitetogether.feed.model.Feed;
-import java.util.List;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
