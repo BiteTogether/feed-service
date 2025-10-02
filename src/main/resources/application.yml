@@ -4,10 +4,14 @@ server:
 spring:
   application:
     name: feed-service
+  cloud:
+    compatibility-verifier:
+      enabled: false
   profiles:
     include:
       - security
       - openapi
       - jwt
       - database
+      - openfeign
 
