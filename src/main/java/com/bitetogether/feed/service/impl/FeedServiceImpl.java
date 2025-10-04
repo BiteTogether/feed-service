@@ -1,7 +1,6 @@
 package com.bitetogether.feed.service.impl;
 
 import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
 import com.bitetogether.feed.dto.UserDTO;
@@ -12,16 +11,18 @@ import com.bitetogether.feed.model.Feed;
 import com.bitetogether.feed.repository.FeedRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
 import com.bitetogether.feed.service.inter.FeedService;
-import java.util.List;
-import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -37,22 +38,16 @@ public class FeedServiceImpl implements FeedService {
   public ApiResponse<FeedResponse> createFeed(FeedRequest feed) {
     log.info("Creating feed with request: {}", feed);
     Feed feedEntity = feedMapper.toFeed(feed);
-    log.info("Mapped feed entity: {}", feedEntity);
-
-    Feed newFeed = feedRepository.save(feedEntity);
-    log.info("Saved feed to database: {}", newFeed);
-
-    Optional<Feed> verifyFeed = feedRepository.findById(newFeed.getId());
-    log.info("Verification - Feed exists in DB: {}", verifyFeed.isPresent());
+    Feed savedFeed = feedRepository.save(feedEntity);
+    log.info("Feed saved with ID: {}", savedFeed.getId());
+    FeedResponse response = mapFeedToFeedResponseWithUser(savedFeed);
     return ApiResponseUtil.buildApiResponse(
-        ApiResponseStatus.SUCCESS,
-        ApiResponseStatus.SUCCESS.getDefaultMessage(),
-        mapFeedToFeedResponseWithUser(newFeed));
+        ApiResponseStatus.SUCCESS, ApiResponseStatus.SUCCESS.getDefaultMessage(), response);
   }
 
   @Override
   @Transactional
-  public ApiResponse<FeedResponse> getFeedById(Long id) {
+  public ApiResponse<FeedResponse> getFeedById(String id) {
     Feed feed =
         feedRepository
             .findById(id)
@@ -65,22 +60,24 @@ public class FeedServiceImpl implements FeedService {
 
   @Override
   @Transactional
-  public ApiResponsePagination<List<FeedResponse>> getFeedByUserId(Long userId, Pageable pageable) {
-    Page<Feed> feeds = feedRepository.findAllByUserId(userId, pageable);
-    List<FeedResponse> feedResponses =
-        feeds.getContent().stream().map(this::mapFeedToFeedResponseWithUser).toList();
+  public ApiResponse<List<FeedResponse>> getFeedsByUserId(Long userId, int page, int size) {
+    log.info(
+        "Getting feeds for user ID: {} with pagination - page: {}, size: {}", userId, page, size);
+    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Page<Feed> feedPage = feedRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+    Page<FeedResponse> responsePage = feedPage.map(this::mapFeedToFeedResponseWithUser);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
-        feedResponses.isEmpty() ? null : feedResponses,
-        feeds.getNumber(),
-        feeds.getTotalPages(),
-        feeds.getTotalElements());
+        responsePage.getContent(),
+        responsePage.getNumber(),
+        responsePage.getTotalPages(),
+        responsePage.getTotalElements());
   }
 
   @Override
   @Transactional
-  public ApiResponse<FeedResponse> updateFeed(Long id, FeedRequest feedRequest) {
+  public ApiResponse<FeedResponse> updateFeed(String id, FeedRequest feedRequest) {
     Feed feed =
         feedRepository
             .findById(id)
@@ -95,7 +92,7 @@ public class FeedServiceImpl implements FeedService {
 
   @Override
   @Transactional
-  public ApiResponse<String> deleteFeed(Long id) {
+  public ApiResponse<String> deleteFeed(String id) {
     Feed feed =
         feedRepository
             .findById(id)
@@ -108,10 +105,19 @@ public class FeedServiceImpl implements FeedService {
   }
 
   private FeedResponse mapFeedToFeedResponseWithUser(Feed feed) {
-    UserDTO userDTO = userClient.getUserById(feed.getUserId());
+    log.info("Mapping feed to response, feed: {}", feed);
+    UserDTO userDTO = null;
+    try {
+      ResponseEntity<ApiResponse<UserDTO>> userResponse = userClient.getUserById(feed.getUserId());
+      userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
+      log.info("Fetched userDTO: {}", userDTO);
+    } catch (Exception ex) {
+      log.error("Failed to fetch userDTO for userId {}: {}", feed.getUserId(), ex.getMessage(), ex);
+    }
     FeedResponse feedResponse = feedMapper.toFeedResponse(feed);
+    log.info("Mapped feedResponse before setting user: {}", feedResponse);
     feedResponse.setUser(userDTO);
-    log.info("Feed response: {}", feedResponse);
+    log.info("Feed response after setting user: {}", feedResponse);
     return feedResponse;
   }
 }
