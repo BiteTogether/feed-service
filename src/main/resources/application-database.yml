@@ -1,8 +1,10 @@
 spring:
   data:
     mongodb:
-#      uri: ${MONGODB_URI:mongodb://localhost:27017/bitetogether}
       uri: ${SPRING_DATA_MONGODB_URI:mongodb://bitetogether-mongodb:27017/bitetogether}
+      username: ${SPRING_DATA_MONGODB_USERNAME:}
+      password: ${SPRING_DATA_MONGODB_PASSWORD:}
       database: bitetogether
+
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
