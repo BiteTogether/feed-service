@@ -1,26 +1,33 @@
 package com.bitetogether.feed.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
-
-@Entity
+@Document(collection = "feeds")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "feeds")
-public class Feed {
-    @Id
-    private Long id;
-    private Long userId;
-    private Long placeId;
-    private String content;
-    private Integer rating;
-    private String photoUrl;
+public class Feed extends BaseModel {
+  @Id private String id;
+
+  @Field("user_id")
+  private Long userId;
+
+  @Field("place_id")
+  private Long placeId;
+
+  @Field("content")
+  private String content;
+
+  @Field("rating")
+  private Integer rating;
+
+  @Field("photo_url")
+  private String photoUrl;
 }
