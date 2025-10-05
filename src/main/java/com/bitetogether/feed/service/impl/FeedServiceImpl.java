@@ -1,122 +1,123 @@
 package com.bitetogether.feed.service.impl;
 
 import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
-import com.bitetogether.feed.dto.FeedDTO;
+import com.bitetogether.feed.dto.UserDTO;
+import com.bitetogether.feed.dto.request.FeedRequest;
+import com.bitetogether.feed.dto.response.FeedResponse;
 import com.bitetogether.feed.mapper.FeedMapper;
 import com.bitetogether.feed.model.Feed;
 import com.bitetogether.feed.repository.FeedRepository;
+import com.bitetogether.feed.repository.httpclient.UserClient;
 import com.bitetogether.feed.service.inter.FeedService;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FeedServiceImpl implements FeedService {
   FeedRepository feedRepository;
   FeedMapper feedMapper;
-
-  //    @Override
-  //    @Transactional(noRollbackFor = Exception.class)
-  //    public ApiResponse<Feed> createFeed (FeedDTO feed) {
-  //        ApiResponse<Feed> response;
-  //        try{
-  //            Feed newFeed = feedRepository.save(feedMapper.toFeed(feed));
-  //            response = ApiResponseUtil.buildResponse(
-  //                    ApiResponseStatus.SUCCESS,
-  //                    ApiResponseStatus.SUCCESS.getDefaultMessage(),
-  //                    newFeed
-  //            );
-  //        } catch (Exception e) {
-  //            response = ApiResponseUtil.buildResponse(
-  //                    ApiResponseStatus.ERROR,
-  //                    "Creating feed error: " + e.getMessage(),
-  //                    null
-  //            );
-  //        }
-  //        return response;
-  //    }
+  UserClient userClient;
 
   @Override
   @Transactional
-  public ApiResponse<Feed> createFeed(FeedDTO feed) {
-    ApiResponse<Feed> response;
-    Feed newFeed = feedRepository.save(feedMapper.toFeed(feed));
-    response =
-        ApiResponseUtil.buildApiResponse(
-            ApiResponseStatus.SUCCESS, ApiResponseStatus.SUCCESS.getDefaultMessage(), newFeed);
-    return response;
+  public ApiResponse<FeedResponse> createFeed(FeedRequest feed) {
+    log.info("Creating feed with request: {}", feed);
+    Feed feedEntity = feedMapper.toFeed(feed);
+    Feed savedFeed = feedRepository.save(feedEntity);
+    log.info("Feed saved with ID: {}", savedFeed.getId());
+    FeedResponse response = mapFeedToFeedResponseWithUser(savedFeed);
+    return ApiResponseUtil.buildApiResponse(
+        ApiResponseStatus.SUCCESS, ApiResponseStatus.SUCCESS.getDefaultMessage(), response);
   }
 
   @Override
   @Transactional
-  public ApiResponse<Feed> getFeedById(Long id) {
-    ApiResponse<Feed> response;
+  public ApiResponse<FeedResponse> getFeedById(String id) {
     Feed feed =
         feedRepository
             .findById(id)
             .orElseThrow(() -> new RuntimeException("Feed not found with id: " + id));
-    response =
-        ApiResponseUtil.buildApiResponse(
-            ApiResponseStatus.SUCCESS, ApiResponseStatus.SUCCESS.getDefaultMessage(), feed);
-    return response;
+    return ApiResponseUtil.buildApiResponse(
+        ApiResponseStatus.SUCCESS,
+        ApiResponseStatus.SUCCESS.getDefaultMessage(),
+        mapFeedToFeedResponseWithUser(feed));
   }
 
   @Override
   @Transactional
-  public ApiResponsePagination<List<Feed>> getFeedByUserId(Long userId, Pageable pageable) {
-    ApiResponsePagination<List<Feed>> response;
-    Page<Feed> feeds = feedRepository.findAllByUserId(userId, pageable);
-    response =
-        ApiResponseUtil.buildApiResponse(
-            ApiResponseStatus.SUCCESS,
-            ApiResponseStatus.SUCCESS.getDefaultMessage(),
-            feeds.getContent().isEmpty() ? null : feeds.getContent(),
-            feeds.getNumber(),
-            feeds.getTotalPages(),
-            feeds.getTotalElements());
-    return response;
+  public ApiResponse<List<FeedResponse>> getFeedsByUserId(Long userId, int page, int size) {
+    log.info(
+        "Getting feeds for user ID: {} with pagination - page: {}, size: {}", userId, page, size);
+    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Page<Feed> feedPage = feedRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+    Page<FeedResponse> responsePage = feedPage.map(this::mapFeedToFeedResponseWithUser);
+    return ApiResponseUtil.buildApiResponse(
+        ApiResponseStatus.SUCCESS,
+        ApiResponseStatus.SUCCESS.getDefaultMessage(),
+        responsePage.getContent(),
+        responsePage.getNumber(),
+        responsePage.getTotalPages(),
+        responsePage.getTotalElements());
   }
 
   @Override
   @Transactional
-  public ApiResponse<Feed> updateFeed(Long id, FeedDTO feedDTO) {
-    ApiResponse<Feed> response;
+  public ApiResponse<FeedResponse> updateFeed(String id, FeedRequest feedRequest) {
     Feed feed =
         feedRepository
             .findById(id)
             .orElseThrow(() -> new RuntimeException("Feed not found with id: " + id));
-    feedMapper.updateFeedFromDTO(feedDTO, feed);
+    feedMapper.updateFeedFromFeedRequest(feedRequest, feed);
     feedRepository.save(feed);
-    response =
-        ApiResponseUtil.buildApiResponse(
-            ApiResponseStatus.SUCCESS, ApiResponseStatus.SUCCESS.getDefaultMessage(), feed);
-    return response;
+    return ApiResponseUtil.buildApiResponse(
+        ApiResponseStatus.SUCCESS,
+        ApiResponseStatus.SUCCESS.getDefaultMessage(),
+        mapFeedToFeedResponseWithUser(feed));
   }
 
   @Override
   @Transactional
-  public ApiResponse<String> deleteFeed(Long id) {
-    ApiResponse<String> response;
+  public ApiResponse<String> deleteFeed(String id) {
     Feed feed =
         feedRepository
             .findById(id)
             .orElseThrow(() -> new RuntimeException("Feed not found with id: " + id));
     feedRepository.delete(feed);
-    response =
-        ApiResponseUtil.buildApiResponse(
-            ApiResponseStatus.SUCCESS,
-            ApiResponseStatus.SUCCESS.getDefaultMessage(),
-            "Feed deleted successfully");
-    return response;
+    return ApiResponseUtil.buildApiResponse(
+        ApiResponseStatus.SUCCESS,
+        ApiResponseStatus.SUCCESS.getDefaultMessage(),
+        "Feed deleted successfully");
+  }
+
+  private FeedResponse mapFeedToFeedResponseWithUser(Feed feed) {
+    log.info("Mapping feed to response, feed: {}", feed);
+    UserDTO userDTO = null;
+    try {
+      ResponseEntity<ApiResponse<UserDTO>> userResponse = userClient.getUserById(feed.getUserId());
+      userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
+      log.info("Fetched userDTO: {}", userDTO);
+    } catch (Exception ex) {
+      log.error("Failed to fetch userDTO for userId {}: {}", feed.getUserId(), ex.getMessage(), ex);
+    }
+    FeedResponse feedResponse = feedMapper.toFeedResponse(feed);
+    log.info("Mapped feedResponse before setting user: {}", feedResponse);
+    feedResponse.setUser(userDTO);
+    log.info("Feed response after setting user: {}", feedResponse);
+    return feedResponse;
   }
 }

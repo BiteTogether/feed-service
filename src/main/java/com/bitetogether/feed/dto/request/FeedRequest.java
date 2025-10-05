@@ -1,10 +1,9 @@
-package com.bitetogether.feed.dto;
+package com.bitetogether.feed.dto.request;
 
-import lombok.*;
+import lombok.Data;
 
 @Data
-public class FeedDTO {
-  private Long id;
+public class FeedRequest {
   private Long userId;
   private Long placeId;
   private String content;

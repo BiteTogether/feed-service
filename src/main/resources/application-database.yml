@@ -1,13 +1,10 @@
 spring:
-  datasource:
-    url: ${POSTGRES_URL}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://bitetogether-mongodb:27017/bitetogether}
+      username: ${SPRING_DATA_MONGODB_USERNAME:}
+      password: ${SPRING_DATA_MONGODB_PASSWORD:}
+      database: bitetogether
+
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
