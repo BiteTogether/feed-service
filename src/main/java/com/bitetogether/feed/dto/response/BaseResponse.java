@@ -1,14 +1,14 @@
 package com.bitetogether.feed.dto.response;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
 public abstract class BaseResponse {
-  private LocalDateTime createdAt;
-  private LocalDateTime updatedAt;
+  private Instant createdAt;
+  private Instant updatedAt;
   private String createdBy;
   private String updatedBy;
 }

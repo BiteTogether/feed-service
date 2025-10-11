@@ -14,4 +14,3 @@ spring:
       - jwt
       - database
       - openfeign
-

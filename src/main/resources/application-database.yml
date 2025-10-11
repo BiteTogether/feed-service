@@ -1,9 +1,7 @@
 spring:
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb://bitetogether-mongodb:27017/bitetogether}
-      username: ${SPRING_DATA_MONGODB_USERNAME:}
-      password: ${SPRING_DATA_MONGODB_PASSWORD:}
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://admin:admin123@localhost:27017/bitetogether?authSource=admin&authMechanism=SCRAM-SHA-1}
       database: bitetogether
 
   autoconfigure:
