@@ -41,6 +41,15 @@ public class FeedController {
     return ResponseEntity.ok(response);
   }
 
+  @GetMapping("/new-feeds/{userId}")
+  public ResponseEntity<ApiResponse<List<FeedResponse>>> getNewFeeds(
+      @PathVariable Long userId,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size) {
+    ApiResponse<List<FeedResponse>> response = feedService.getNewFeed(userId, page, size);
+    return ResponseEntity.ok(response);
+  }
+
   @PutMapping("/{id}")
   public ResponseEntity<ApiResponse<FeedResponse>> updateFeed(
       @PathVariable String id, @RequestBody FeedRequest feedRequest) {

@@ -3,6 +3,7 @@ package com.bitetogether.feed.service.impl;
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
+import com.bitetogether.feed.dto.FriendDTO;
 import com.bitetogether.feed.dto.UserDTO;
 import com.bitetogether.feed.dto.request.FeedRequest;
 import com.bitetogether.feed.dto.response.FeedResponse;
@@ -22,6 +23,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -104,6 +108,27 @@ public class FeedServiceImpl implements FeedService {
         "Feed deleted successfully");
   }
 
+  @Override
+    @Transactional
+    public ApiResponse<List<FeedResponse>> getNewFeed(Long userId, int page, int size) {
+        log.info("Fetching new feeds with pagination - page: {}, size: {}", 0, 10);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        ResponseEntity<ApiResponse<List<FriendDTO>>> friendResponse = userClient.getFriendList(userId);
+        List<FriendDTO> friends = friendResponse.getBody() != null ? friendResponse.getBody().getData() : List.of();
+        List<Long> friendIds = extractUserIds(friends);
+
+        Page<Feed> feedPage = feedRepository.findByUserIdInAndCreatedAtAfter(friendIds, Instant.now().minus(1, ChronoUnit.DAYS), pageable);
+        Page<FeedResponse> responsePage = feedPage.map(this::mapFeedToFeedResponseWithUser);
+        return ApiResponseUtil.buildApiResponse(
+                ApiResponseStatus.SUCCESS,
+                ApiResponseStatus.SUCCESS.getDefaultMessage(),
+                responsePage.getContent(),
+                responsePage.getNumber(),
+                responsePage.getTotalPages(),
+                responsePage.getTotalElements());
+    }
+
   private FeedResponse mapFeedToFeedResponseWithUser(Feed feed) {
     log.info("Mapping feed to response, feed: {}", feed);
     UserDTO userDTO = null;
@@ -119,5 +144,9 @@ public class FeedServiceImpl implements FeedService {
     feedResponse.setUser(userDTO);
     log.info("Feed response after setting user: {}", feedResponse);
     return feedResponse;
+  }
+
+  private List<Long> extractUserIds(List<FriendDTO> feeds) {
+    return feeds.stream().map(FriendDTO::getId).distinct().toList();
   }
 }
