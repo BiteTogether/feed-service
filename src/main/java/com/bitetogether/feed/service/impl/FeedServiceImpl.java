@@ -1,6 +1,7 @@
 package com.bitetogether.feed.service.impl;
 
 import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
 import com.bitetogether.feed.dto.FriendDTO;
@@ -12,6 +13,9 @@ import com.bitetogether.feed.model.Feed;
 import com.bitetogether.feed.repository.FeedRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
 import com.bitetogether.feed.service.inter.FeedService;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -23,10 +27,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -64,7 +64,7 @@ public class FeedServiceImpl implements FeedService {
 
   @Override
   @Transactional
-  public ApiResponse<List<FeedResponse>> getFeedsByUserId(Long userId, int page, int size) {
+  public ApiResponsePagination<FeedResponse> getFeedsByUserId(Long userId, int page, int size) {
     log.info(
         "Getting feeds for user ID: {} with pagination - page: {}, size: {}", userId, page, size);
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -109,25 +109,28 @@ public class FeedServiceImpl implements FeedService {
   }
 
   @Override
-    @Transactional
-    public ApiResponse<List<FeedResponse>> getNewFeed(Long userId, int page, int size) {
-        log.info("Fetching new feeds with pagination - page: {}, size: {}", 0, 10);
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+  @Transactional
+  public ApiResponsePagination<FeedResponse> getNewFeed(Long userId, int page, int size) {
+    log.info("Fetching new feeds with pagination - page: {}, size: {}", 0, 10);
+    Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        ResponseEntity<ApiResponse<List<FriendDTO>>> friendResponse = userClient.getFriendList(userId);
-        List<FriendDTO> friends = friendResponse.getBody() != null ? friendResponse.getBody().getData() : List.of();
-        List<Long> friendIds = extractUserIds(friends);
+    ResponseEntity<ApiResponse<List<FriendDTO>>> friendResponse = userClient.getFriendList(userId);
+    List<FriendDTO> friends =
+        friendResponse.getBody() != null ? friendResponse.getBody().getData() : List.of();
+    List<Long> friendIds = extractUserIds(friends);
 
-        Page<Feed> feedPage = feedRepository.findByUserIdInAndCreatedAtAfter(friendIds, Instant.now().minus(1, ChronoUnit.DAYS), pageable);
-        Page<FeedResponse> responsePage = feedPage.map(this::mapFeedToFeedResponseWithUser);
-        return ApiResponseUtil.buildApiResponse(
-                ApiResponseStatus.SUCCESS,
-                ApiResponseStatus.SUCCESS.getDefaultMessage(),
-                responsePage.getContent(),
-                responsePage.getNumber(),
-                responsePage.getTotalPages(),
-                responsePage.getTotalElements());
-    }
+    Page<Feed> feedPage =
+        feedRepository.findByUserIdInAndCreatedAtAfter(
+            friendIds, Instant.now().minus(1, ChronoUnit.DAYS), pageable);
+    Page<FeedResponse> responsePage = feedPage.map(this::mapFeedToFeedResponseWithUser);
+    return ApiResponseUtil.buildApiResponse(
+        ApiResponseStatus.SUCCESS,
+        ApiResponseStatus.SUCCESS.getDefaultMessage(),
+        responsePage.getContent(),
+        responsePage.getNumber(),
+        responsePage.getTotalPages(),
+        responsePage.getTotalElements());
+  }
 
   private FeedResponse mapFeedToFeedResponseWithUser(Feed feed) {
     log.info("Mapping feed to response, feed: {}", feed);

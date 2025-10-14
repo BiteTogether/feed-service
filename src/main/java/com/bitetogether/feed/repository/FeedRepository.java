@@ -1,14 +1,13 @@
 package com.bitetogether.feed.repository;
 
 import com.bitetogether.feed.model.Feed;
+import java.time.Instant;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
-
-import java.time.Instant;
-import java.util.List;
 
 @Repository
 public interface FeedRepository extends MongoRepository<Feed, String> {
@@ -23,5 +22,6 @@ public interface FeedRepository extends MongoRepository<Feed, String> {
   @Query(value = "{ 'userId': ?0 }", sort = "{ 'createdAt': -1 }")
   Page<Feed> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
-  Page<Feed> findByUserIdInAndCreatedAtAfter(List<Long> userIds, Instant createdAt, Pageable pageable);
+  Page<Feed> findByUserIdInAndCreatedAtAfter(
+      List<Long> userIds, Instant createdAt, Pageable pageable);
 }

@@ -4,12 +4,11 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.feed.configuration.openfeign.FeignClientConfig;
 import com.bitetogether.feed.dto.FriendDTO;
 import com.bitetogether.feed.dto.UserDTO;
+import java.util.List;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-
-import java.util.List;
 
 @FeignClient(
     name = "user-service",
@@ -20,5 +19,5 @@ public interface UserClient {
   ResponseEntity<ApiResponse<UserDTO>> getUserById(@PathVariable Long id);
 
   @GetMapping("/api/v1/friends")
-    ResponseEntity<ApiResponse<List<FriendDTO>>> getFriendList(@PathVariable Long id);
+  ResponseEntity<ApiResponse<List<FriendDTO>>> getFriendList(@PathVariable Long id);
 }
