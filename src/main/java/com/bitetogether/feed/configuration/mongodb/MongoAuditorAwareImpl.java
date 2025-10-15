@@ -3,10 +3,12 @@ package com.bitetogether.feed.configuration.mongodb;
 import static com.bitetogether.common.util.SecurityUtils.getCurrentUserId;
 
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.stereotype.Component;
 
 @Component("mongoAuditorProvider")
+@Slf4j
 public class MongoAuditorAwareImpl implements AuditorAware<String> {
 
   @Override
@@ -18,7 +20,8 @@ public class MongoAuditorAwareImpl implements AuditorAware<String> {
         return Optional.of("USER_" + currentUserId);
       }
 
-    } catch (Exception ignored) {
+    } catch (Exception ex) {
+      log.warn("Could not get current user ID for auditing", ex);
     }
 
     return Optional.of("SYSTEM");

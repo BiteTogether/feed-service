@@ -42,12 +42,10 @@ public class FeedController {
     return ResponseEntity.ok(response);
   }
 
-  @GetMapping("/new-feeds/{userId}")
+  @GetMapping("/new-feeds")
   public ResponseEntity<ApiResponsePagination<FeedResponse>> getNewFeeds(
-      @PathVariable Long userId,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size) {
-    ApiResponsePagination<FeedResponse> response = feedService.getNewFeed(userId, page, size);
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+    ApiResponsePagination<FeedResponse> response = feedService.getNewFeed(page, size);
     return ResponseEntity.ok(response);
   }
 

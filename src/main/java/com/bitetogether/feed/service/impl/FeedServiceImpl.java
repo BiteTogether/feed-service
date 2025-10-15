@@ -2,6 +2,7 @@ package com.bitetogether.feed.service.impl;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
 import com.bitetogether.feed.dto.FriendDTO;
@@ -110,18 +111,28 @@ public class FeedServiceImpl implements FeedService {
 
   @Override
   @Transactional
-  public ApiResponsePagination<FeedResponse> getNewFeed(Long userId, int page, int size) {
-    log.info("Fetching new feeds with pagination - page: {}, size: {}", 0, 10);
+  public ApiResponsePagination<FeedResponse> getNewFeed(int page, int size) {
+    log.info("Fetching new feeds with pagination - page: {}, size: {}", page, size);
     Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-    ResponseEntity<ApiResponse<List<FriendDTO>>> friendResponse = userClient.getFriendList(userId);
-    List<FriendDTO> friends =
-        friendResponse.getBody() != null ? friendResponse.getBody().getData() : List.of();
+    List<FriendDTO> friends;
+    try {
+      PaginationRequest paginationRequest = new PaginationRequest();
+      paginationRequest.setPage(0);
+      paginationRequest.setSize(100);
+      paginationRequest.setLimit(100);
+      ResponseEntity<ApiResponsePagination<FriendDTO>> friendResponse =
+          userClient.getFriendList(paginationRequest);
+      friends = friendResponse.getBody() != null ? friendResponse.getBody().getData() : List.of();
+    } catch (Exception ex) {
+      log.error("Failed to fetch friend list: {}", ex.getMessage(), ex);
+      friends = List.of();
+    }
     List<Long> friendIds = extractUserIds(friends);
 
     Page<Feed> feedPage =
         feedRepository.findByUserIdInAndCreatedAtAfter(
-            friendIds, Instant.now().minus(1, ChronoUnit.DAYS), pageable);
+            friendIds, Instant.now().minus(2, ChronoUnit.DAYS), pageable);
     Page<FeedResponse> responsePage = feedPage.map(this::mapFeedToFeedResponseWithUser);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,

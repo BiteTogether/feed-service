@@ -16,5 +16,5 @@ public interface FeedService {
 
   ApiResponse<String> deleteFeed(String id);
 
-  ApiResponsePagination<FeedResponse> getNewFeed(Long userId, int page, int size);
+  ApiResponsePagination<FeedResponse> getNewFeed(int page, int size);
 }
