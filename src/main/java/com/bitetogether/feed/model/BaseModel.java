@@ -1,7 +1,6 @@
 package com.bitetogether.feed.model;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedBy;
@@ -13,19 +12,19 @@ import org.springframework.data.mongodb.core.mapping.Field;
 @Getter
 @Setter
 public abstract class BaseModel {
-    @CreatedDate
-    @Field("created_at")
-    private Instant createdAt;
+  @CreatedDate
+  @Field("created_at")
+  private Instant createdAt;
 
-    @LastModifiedDate
-    @Field("updated_at")
-    private Instant updatedAt;
+  @LastModifiedDate
+  @Field("updated_at")
+  private Instant updatedAt;
 
-    @CreatedBy
-    @Field("created_by")
-    private String createdBy;
+  @CreatedBy
+  @Field("created_by")
+  private String createdBy;
 
-    @LastModifiedBy
-    @Field("updated_by")
-    private String updatedBy;
+  @LastModifiedBy
+  @Field("updated_by")
+  private String updatedBy;
 }

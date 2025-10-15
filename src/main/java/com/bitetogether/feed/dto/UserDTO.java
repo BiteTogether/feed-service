@@ -1,5 +1,6 @@
 package com.bitetogether.feed.dto;
 
+import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
@@ -11,4 +12,6 @@ public class UserDTO {
   private String phoneNumber;
   private String avatar;
   private String role;
+  private LocalDateTime createdAt;
+  private LocalDateTime updatedAt;
 }

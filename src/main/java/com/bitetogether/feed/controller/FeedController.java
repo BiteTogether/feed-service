@@ -1,6 +1,9 @@
 package com.bitetogether.feed.controller;
 
+import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FEED;
+
 import com.bitetogether.common.dto.ApiResponse;
+import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.feed.dto.request.FeedRequest;
 import com.bitetogether.feed.dto.response.FeedResponse;
 import com.bitetogether.feed.service.inter.FeedService;
@@ -10,11 +13,9 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/feeds")
+@RequestMapping(PREFIX_REQUEST_MAPPING_FEED)
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FeedController {
   FeedService feedService;
@@ -33,11 +34,18 @@ public class FeedController {
   }
 
   @GetMapping("/user/{userId}")
-  public ResponseEntity<ApiResponse<List<FeedResponse>>> getFeedsByUserId(
+  public ResponseEntity<ApiResponsePagination<FeedResponse>> getFeedsByUserId(
       @PathVariable Long userId,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "10") int size) {
-    ApiResponse<List<FeedResponse>> response = feedService.getFeedsByUserId(userId, page, size);
+    ApiResponsePagination<FeedResponse> response = feedService.getFeedsByUserId(userId, page, size);
+    return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/new-feeds")
+  public ResponseEntity<ApiResponsePagination<FeedResponse>> getNewFeeds(
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+    ApiResponsePagination<FeedResponse> response = feedService.getNewFeed(page, size);
     return ResponseEntity.ok(response);
   }
 
