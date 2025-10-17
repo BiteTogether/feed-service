@@ -10,5 +10,7 @@ public class PostResponse extends BaseResponse {
   private String content;
   private Integer rating;
   private String photoUrl;
+  private Integer likeCount;
+  private Integer commentCount;
   private UserDTO user;
 }

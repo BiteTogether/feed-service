@@ -5,7 +5,7 @@ import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.feed.dto.request.PostRequest;
 import com.bitetogether.feed.dto.response.PostResponse;
 
-public interface FeedService {
+public interface PostService {
   ApiResponse<PostResponse> createPost(PostRequest postRequest);
 
   ApiResponse<PostResponse> getPostById(String id);

@@ -8,32 +8,20 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-@Document(collection = "posts")
+@Document(collection = "comments")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Post extends BaseModel {
+public class Comment extends BaseModel {
   @Id private String id;
+
+  @Field("post_id")
+  private String postId;
 
   @Field("user_id")
   private Long userId;
 
-  @Field("place_id")
-  private Long placeId;
-
   @Field("content")
   private String content;
-
-  @Field("rating")
-  private Integer rating;
-
-  @Field("photo_url")
-  private String photoUrl;
-
-  @Field("like_count")
-  private Integer likeCount = 0;
-
-  @Field("comment_count")
-  private Integer commentCount = 0;
 }

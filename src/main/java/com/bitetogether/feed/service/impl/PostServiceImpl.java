@@ -13,7 +13,7 @@ import com.bitetogether.feed.mapper.PostMapper;
 import com.bitetogether.feed.model.Post;
 import com.bitetogether.feed.repository.PostRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
-import com.bitetogether.feed.service.inter.FeedService;
+import com.bitetogether.feed.service.inter.PostService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -33,7 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class FeedServiceImpl implements FeedService {
+public class PostServiceImpl implements PostService {
   PostRepository postRepository;
   PostMapper postMapper;
   UserClient userClient;
@@ -60,7 +60,7 @@ public class FeedServiceImpl implements FeedService {
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
-            mapPostToPostResponseWithUser(post));
+        mapPostToPostResponseWithUser(post));
   }
 
   @Override
@@ -92,7 +92,7 @@ public class FeedServiceImpl implements FeedService {
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
-            mapPostToPostResponseWithUser(post));
+        mapPostToPostResponseWithUser(post));
   }
 
   @Override
