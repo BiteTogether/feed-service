@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Tag(name = "Feed Service", description = "APIs for managing posts")
+@Tag(name = "Post Service", description = "APIs for managing posts")
 @RequiredArgsConstructor
 @RequestMapping(PREFIX_REQUEST_MAPPING_FEED)
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
