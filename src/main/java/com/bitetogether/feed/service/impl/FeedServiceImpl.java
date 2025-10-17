@@ -7,11 +7,11 @@ import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
 import com.bitetogether.feed.dto.FriendDTO;
 import com.bitetogether.feed.dto.UserDTO;
-import com.bitetogether.feed.dto.request.FeedRequest;
-import com.bitetogether.feed.dto.response.FeedResponse;
-import com.bitetogether.feed.mapper.FeedMapper;
-import com.bitetogether.feed.model.Feed;
-import com.bitetogether.feed.repository.FeedRepository;
+import com.bitetogether.feed.dto.request.PostRequest;
+import com.bitetogether.feed.dto.response.PostResponse;
+import com.bitetogether.feed.mapper.PostMapper;
+import com.bitetogether.feed.model.Post;
+import com.bitetogether.feed.repository.PostRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
 import com.bitetogether.feed.service.inter.FeedService;
 import java.time.Instant;
@@ -34,43 +34,43 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FeedServiceImpl implements FeedService {
-  FeedRepository feedRepository;
-  FeedMapper feedMapper;
+  PostRepository postRepository;
+  PostMapper postMapper;
   UserClient userClient;
 
   @Override
   @Transactional
-  public ApiResponse<FeedResponse> createFeed(FeedRequest feed) {
-    log.info("Creating feed with request: {}", feed);
-    Feed feedEntity = feedMapper.toFeed(feed);
-    Feed savedFeed = feedRepository.save(feedEntity);
-    log.info("Feed saved with ID: {}", savedFeed.getId());
-    FeedResponse response = mapFeedToFeedResponseWithUser(savedFeed);
+  public ApiResponse<PostResponse> createPost(PostRequest postRequest) {
+    log.info("Creating feed with request: {}", postRequest);
+    Post postEntity = postMapper.toPost(postRequest);
+    Post savedPost = postRepository.save(postEntity);
+    log.info("Feed saved with ID: {}", savedPost.getId());
+    PostResponse response = mapPostToPostResponseWithUser(savedPost);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS, ApiResponseStatus.SUCCESS.getDefaultMessage(), response);
   }
 
   @Override
   @Transactional
-  public ApiResponse<FeedResponse> getFeedById(String id) {
-    Feed feed =
-        feedRepository
+  public ApiResponse<PostResponse> getPostById(String id) {
+    Post post =
+        postRepository
             .findById(id)
-            .orElseThrow(() -> new RuntimeException("Feed not found with id: " + id));
+            .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
-        mapFeedToFeedResponseWithUser(feed));
+            mapPostToPostResponseWithUser(post));
   }
 
   @Override
   @Transactional
-  public ApiResponsePagination<FeedResponse> getFeedsByUserId(Long userId, int page, int size) {
+  public ApiResponsePagination<PostResponse> getPostsByUserId(Long userId, int page, int size) {
     log.info(
-        "Getting feeds for user ID: {} with pagination - page: {}, size: {}", userId, page, size);
+        "Getting posts for user ID: {} with pagination - page: {}, size: {}", userId, page, size);
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-    Page<Feed> feedPage = feedRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
-    Page<FeedResponse> responsePage = feedPage.map(this::mapFeedToFeedResponseWithUser);
+    Page<Post> feedPage = postRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+    Page<PostResponse> responsePage = feedPage.map(this::mapPostToPostResponseWithUser);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
@@ -82,27 +82,27 @@ public class FeedServiceImpl implements FeedService {
 
   @Override
   @Transactional
-  public ApiResponse<FeedResponse> updateFeed(String id, FeedRequest feedRequest) {
-    Feed feed =
-        feedRepository
+  public ApiResponse<PostResponse> updatePost(String id, PostRequest postRequest) {
+    Post post =
+        postRepository
             .findById(id)
-            .orElseThrow(() -> new RuntimeException("Feed not found with id: " + id));
-    feedMapper.updateFeedFromFeedRequest(feedRequest, feed);
-    feedRepository.save(feed);
+            .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
+    postMapper.updatePostFromPostRequest(postRequest, post);
+    postRepository.save(post);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
-        mapFeedToFeedResponseWithUser(feed));
+            mapPostToPostResponseWithUser(post));
   }
 
   @Override
   @Transactional
-  public ApiResponse<String> deleteFeed(String id) {
-    Feed feed =
-        feedRepository
+  public ApiResponse<String> deletePost(String id) {
+    Post post =
+        postRepository
             .findById(id)
-            .orElseThrow(() -> new RuntimeException("Feed not found with id: " + id));
-    feedRepository.delete(feed);
+            .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
+    postRepository.delete(post);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
@@ -111,8 +111,8 @@ public class FeedServiceImpl implements FeedService {
 
   @Override
   @Transactional
-  public ApiResponsePagination<FeedResponse> getNewFeed(int page, int size) {
-    log.info("Fetching new feeds with pagination - page: {}, size: {}", page, size);
+  public ApiResponsePagination<PostResponse> getNewFeed(int page, int size) {
+    log.info("Fetching new feed with pagination - page: {}, size: {}", page, size);
     Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
 
     List<FriendDTO> friends;
@@ -130,10 +130,10 @@ public class FeedServiceImpl implements FeedService {
     }
     List<Long> friendIds = extractUserIds(friends);
 
-    Page<Feed> feedPage =
-        feedRepository.findByUserIdInAndCreatedAtAfter(
+    Page<Post> feedPage =
+        postRepository.findByUserIdInAndCreatedAtAfter(
             friendIds, Instant.now().minus(2, ChronoUnit.DAYS), pageable);
-    Page<FeedResponse> responsePage = feedPage.map(this::mapFeedToFeedResponseWithUser);
+    Page<PostResponse> responsePage = feedPage.map(this::mapPostToPostResponseWithUser);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
@@ -143,24 +143,24 @@ public class FeedServiceImpl implements FeedService {
         responsePage.getTotalElements());
   }
 
-  private FeedResponse mapFeedToFeedResponseWithUser(Feed feed) {
-    log.info("Mapping feed to response, feed: {}", feed);
+  private PostResponse mapPostToPostResponseWithUser(Post post) {
+    log.info("Mapping post to response, post: {}", post);
     UserDTO userDTO = null;
     try {
-      ResponseEntity<ApiResponse<UserDTO>> userResponse = userClient.getUserById(feed.getUserId());
+      ResponseEntity<ApiResponse<UserDTO>> userResponse = userClient.getUserById(post.getUserId());
       userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
       log.info("Fetched userDTO: {}", userDTO);
     } catch (Exception ex) {
-      log.error("Failed to fetch userDTO for userId {}: {}", feed.getUserId(), ex.getMessage(), ex);
+      log.error("Failed to fetch userDTO for userId {}: {}", post.getUserId(), ex.getMessage(), ex);
     }
-    FeedResponse feedResponse = feedMapper.toFeedResponse(feed);
-    log.info("Mapped feedResponse before setting user: {}", feedResponse);
-    feedResponse.setUser(userDTO);
-    log.info("Feed response after setting user: {}", feedResponse);
-    return feedResponse;
+    PostResponse postResponse = postMapper.toPostResponse(post);
+    log.info("Mapped postResponse before setting user: {}", postResponse);
+    postResponse.setUser(userDTO);
+    log.info("Post response after setting user: {}", postResponse);
+    return postResponse;
   }
 
-  private List<Long> extractUserIds(List<FriendDTO> feeds) {
-    return feeds.stream().map(FriendDTO::getId).distinct().toList();
+  private List<Long> extractUserIds(List<FriendDTO> friends) {
+    return friends.stream().map(FriendDTO::getId).distinct().toList();
   }
 }

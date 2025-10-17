@@ -8,12 +8,12 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-@Document(collection = "feeds")
+@Document(collection = "posts")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Feed extends BaseModel {
+public class Post extends BaseModel {
   @Id private String id;
 
   @Field("user_id")

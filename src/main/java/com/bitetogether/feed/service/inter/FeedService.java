@@ -2,19 +2,19 @@ package com.bitetogether.feed.service.inter;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
-import com.bitetogether.feed.dto.request.FeedRequest;
-import com.bitetogether.feed.dto.response.FeedResponse;
+import com.bitetogether.feed.dto.request.PostRequest;
+import com.bitetogether.feed.dto.response.PostResponse;
 
 public interface FeedService {
-  ApiResponse<FeedResponse> createFeed(FeedRequest feed);
+  ApiResponse<PostResponse> createPost(PostRequest postRequest);
 
-  ApiResponse<FeedResponse> getFeedById(String id);
+  ApiResponse<PostResponse> getPostById(String id);
 
-  ApiResponsePagination<FeedResponse> getFeedsByUserId(Long userId, int page, int size);
+  ApiResponsePagination<PostResponse> getPostsByUserId(Long userId, int page, int size);
 
-  ApiResponse<FeedResponse> updateFeed(String id, FeedRequest feedDTO);
+  ApiResponse<PostResponse> updatePost(String id, PostRequest postRequest);
 
-  ApiResponse<String> deleteFeed(String id);
+  ApiResponse<String> deletePost(String id);
 
-  ApiResponsePagination<FeedResponse> getNewFeed(int page, int size);
+  ApiResponsePagination<PostResponse> getNewFeed(int page, int size);
 }
