@@ -1,6 +1,8 @@
 package com.bitetogether.feed.dto.response;
 
 import java.time.Instant;
+
+import com.bitetogether.feed.dto.UserDTO;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -8,8 +10,8 @@ import lombok.Setter;
 @Setter
 public class LikeResponse {
   private String id;
-  private Long userId;
   private String postId;
   private String commentId;
   private Instant createdAt;
+  private UserDTO user;
 }

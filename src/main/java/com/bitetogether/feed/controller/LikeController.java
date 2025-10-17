@@ -78,9 +78,4 @@ public class LikeController {
         likeService.getLikesByComment(commentId, page, size);
     return ResponseEntity.ok(response);
   }
-
-  @GetMapping("/test")
-  public ResponseEntity<String> test() {
-    return ResponseEntity.ok("Like service is working");
-  }
 }

@@ -4,6 +4,7 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
+import com.bitetogether.feed.dto.UserDTO;
 import com.bitetogether.feed.dto.request.LikeRequest;
 import com.bitetogether.feed.dto.response.LikeResponse;
 import com.bitetogether.feed.mapper.LikeMapper;
@@ -11,12 +12,14 @@ import com.bitetogether.feed.model.Like;
 import com.bitetogether.feed.model.Post;
 import com.bitetogether.feed.repository.LikeRepository;
 import com.bitetogether.feed.repository.PostRepository;
+import com.bitetogether.feed.repository.httpclient.UserClient;
 import com.bitetogether.feed.service.inter.LikeService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +32,7 @@ public class LikeServiceImpl implements LikeService {
   LikeRepository likeRepository;
   PostRepository postRepository;
   LikeMapper likeMapper;
+  UserClient userClient;
 
   @Override
   @Transactional
@@ -67,7 +71,7 @@ public class LikeServiceImpl implements LikeService {
     }
 
     return ApiResponseUtil.buildApiResponse(
-        ApiResponseStatus.SUCCESS, "Liked successfully", likeMapper.toLikeResponse(saved));
+        ApiResponseStatus.SUCCESS, "Liked successfully", mapLikeToLikeResponseWithUser(saved));
   }
 
   @Override
@@ -111,7 +115,7 @@ public class LikeServiceImpl implements LikeService {
   public ApiResponsePagination<LikeResponse> getLikesByUser(Long userId, int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     Page<Like> likePage = likeRepository.findByUserId(userId, pageable);
-    Page<LikeResponse> responsePage = likePage.map(likeMapper::toLikeResponse);
+    Page<LikeResponse> responsePage = likePage.map(this::mapLikeToLikeResponseWithUser);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
@@ -126,7 +130,7 @@ public class LikeServiceImpl implements LikeService {
   public ApiResponsePagination<LikeResponse> getLikesByPost(String postId, int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     Page<Like> likePage = likeRepository.findByPostId(postId, pageable);
-    Page<LikeResponse> responsePage = likePage.map(likeMapper::toLikeResponse);
+    Page<LikeResponse> responsePage = likePage.map(this::mapLikeToLikeResponseWithUser);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
@@ -142,7 +146,7 @@ public class LikeServiceImpl implements LikeService {
       String commentId, int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     Page<Like> likePage = likeRepository.findByCommentId(commentId, pageable);
-    Page<LikeResponse> responsePage = likePage.map(likeMapper::toLikeResponse);
+    Page<LikeResponse> responsePage = likePage.map(this::mapLikeToLikeResponseWithUser);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
@@ -151,4 +155,21 @@ public class LikeServiceImpl implements LikeService {
         responsePage.getTotalPages(),
         responsePage.getTotalElements());
   }
+
+    private LikeResponse mapLikeToLikeResponseWithUser(Like like) {
+        log.info("Mapping like to response, like: {}", like);
+        UserDTO userDTO = null;
+        try {
+            ResponseEntity<ApiResponse<UserDTO>> userResponse = userClient.getUserById(like.getUserId());
+            userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
+            log.info("Fetched userDTO: {}", userDTO);
+        } catch (Exception ex) {
+            log.error("Failed to fetch userDTO for userId {}: {}", like.getUserId(), ex.getMessage(), ex);
+        }
+        LikeResponse likeResponse = likeMapper.toLikeResponse(like);
+        log.info("Mapped postResponse before setting user: {}", likeResponse);
+        likeResponse.setUser(userDTO);
+        log.info("Post response after setting user: {}", likeResponse);
+        return likeResponse;
+    }
 }
