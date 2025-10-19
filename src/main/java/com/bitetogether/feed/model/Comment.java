@@ -24,4 +24,7 @@ public class Comment extends BaseModel {
 
   @Field("content")
   private String content;
+
+  @Field("like_count")
+  private Integer likeCount = 0;
 }

@@ -149,14 +149,11 @@ public class PostServiceImpl implements PostService {
     try {
       ResponseEntity<ApiResponse<UserDTO>> userResponse = userClient.getUserById(post.getUserId());
       userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
-      log.info("Fetched userDTO: {}", userDTO);
     } catch (Exception ex) {
       log.error("Failed to fetch userDTO for userId {}: {}", post.getUserId(), ex.getMessage(), ex);
     }
     PostResponse postResponse = postMapper.toPostResponse(post);
-    log.info("Mapped postResponse before setting user: {}", postResponse);
     postResponse.setUser(userDTO);
-    log.info("Post response after setting user: {}", postResponse);
     return postResponse;
   }
 
