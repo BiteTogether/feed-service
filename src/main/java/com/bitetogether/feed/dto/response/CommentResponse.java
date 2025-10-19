@@ -6,9 +6,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class LikeResponse extends BaseResponse {
+public class CommentResponse extends BaseResponse {
   private String id;
   private String postId;
-  private String commentId;
+  private String content;
+  private Integer likeCount;
   private UserDTO user;
 }

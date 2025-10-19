@@ -8,8 +8,10 @@ import com.bitetogether.feed.dto.UserDTO;
 import com.bitetogether.feed.dto.request.LikeRequest;
 import com.bitetogether.feed.dto.response.LikeResponse;
 import com.bitetogether.feed.mapper.LikeMapper;
+import com.bitetogether.feed.model.Comment;
 import com.bitetogether.feed.model.Like;
 import com.bitetogether.feed.model.Post;
+import com.bitetogether.feed.repository.CommentRepository;
 import com.bitetogether.feed.repository.LikeRepository;
 import com.bitetogether.feed.repository.PostRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
@@ -31,6 +33,7 @@ public class LikeServiceImpl implements LikeService {
 
   LikeRepository likeRepository;
   PostRepository postRepository;
+  CommentRepository commentRepository;
   LikeMapper likeMapper;
   UserClient userClient;
 
@@ -43,31 +46,46 @@ public class LikeServiceImpl implements LikeService {
         request.getPostId(),
         request.getCommentId());
 
-    if (request.getPostId() == null && request.getCommentId() == null)
+    if (request.getPostId() == null) {
       return ApiResponseUtil.buildApiResponse(
-          ApiResponseStatus.BAD_REQUEST, "Invalid like target", null);
+          ApiResponseStatus.BAD_REQUEST, "postId is required", null);
+    }
 
-    boolean alreadyLiked =
-        (request.getPostId() != null)
-            ? likeRepository
-                .findByUserIdAndPostId(
-                    request.getUserId(), request.getPostId(), PageRequest.of(0, 1))
-                .hasContent()
-            : likeRepository
-                .findByUserIdAndCommentId(
-                    request.getUserId(), request.getCommentId(), PageRequest.of(0, 1))
-                .hasContent();
+    boolean isCommentLike = request.getCommentId() != null && !request.getCommentId().isBlank();
 
-    if (alreadyLiked)
+    boolean alreadyLiked;
+    if (isCommentLike) {
+      alreadyLiked =
+          likeRepository
+              .findByUserIdAndCommentId(
+                  request.getUserId(), request.getCommentId(), PageRequest.of(0, 1))
+              .hasContent();
+    } else {
+      alreadyLiked =
+          likeRepository
+              .findByUserIdAndPostId(request.getUserId(), request.getPostId(), PageRequest.of(0, 1))
+              .hasContent();
+    }
+
+    if (alreadyLiked) {
       return ApiResponseUtil.buildApiResponse(ApiResponseStatus.CONFLICT, "Already liked", null);
+    }
 
     Like like = likeMapper.toLike(request);
     Like saved = likeRepository.save(like);
 
-    Post post = postRepository.findById(request.getPostId()).orElse(null);
-    if (post != null) {
-      post.setLikeCount(post.getLikeCount() + 1);
-      postRepository.save(post);
+    if (isCommentLike) {
+      Comment comment = commentRepository.findById(request.getCommentId()).orElse(null);
+      if (comment != null) {
+        comment.setLikeCount(comment.getLikeCount() + 1);
+        commentRepository.save(comment);
+      }
+    } else {
+      Post post = postRepository.findById(request.getPostId()).orElse(null);
+      if (post != null) {
+        post.setLikeCount(post.getLikeCount() + 1);
+        postRepository.save(post);
+      }
     }
 
     return ApiResponseUtil.buildApiResponse(
@@ -83,29 +101,52 @@ public class LikeServiceImpl implements LikeService {
         request.getPostId(),
         request.getCommentId());
 
-    if (request.getPostId() == null && request.getCommentId() == null)
+    // Validation
+    if (request.getPostId() == null) {
       return ApiResponseUtil.buildApiResponse(
-          ApiResponseStatus.BAD_REQUEST, "Invalid unlike target", null);
+          ApiResponseStatus.BAD_REQUEST, "postId is required", null);
+    }
 
-    Like like =
-        (request.getPostId() != null)
-            ? likeRepository
-                .findByUserIdAndPostId(
-                    request.getUserId(), request.getPostId(), PageRequest.of(0, 1))
-                .stream()
-                .findFirst()
-                .orElse(null)
-            : likeRepository
-                .findByUserIdAndCommentId(
-                    request.getUserId(), request.getCommentId(), PageRequest.of(0, 1))
-                .stream()
-                .findFirst()
-                .orElse(null);
+    boolean isCommentUnlike = request.getCommentId() != null && !request.getCommentId().isBlank();
 
-    if (like == null)
+    Like like;
+    if (isCommentUnlike) {
+      like =
+          likeRepository
+              .findByUserIdAndCommentId(
+                  request.getUserId(), request.getCommentId(), PageRequest.of(0, 1))
+              .stream()
+              .findFirst()
+              .orElse(null);
+    } else {
+      like =
+          likeRepository
+              .findByUserIdAndPostId(request.getUserId(), request.getPostId(), PageRequest.of(0, 1))
+              .stream()
+              .findFirst()
+              .orElse(null);
+    }
+
+    if (like == null) {
       return ApiResponseUtil.buildApiResponse(ApiResponseStatus.NOT_FOUND, "Like not found", null);
+    }
 
     likeRepository.delete(like);
+
+    if (isCommentUnlike) {
+      Comment comment = commentRepository.findById(request.getCommentId()).orElse(null);
+      if (comment != null) {
+        comment.setLikeCount(Math.max(0, comment.getLikeCount() - 1));
+        commentRepository.save(comment);
+      }
+    } else {
+      Post post = postRepository.findById(request.getPostId()).orElse(null);
+      if (post != null) {
+        post.setLikeCount(Math.max(0, post.getLikeCount() - 1));
+        postRepository.save(post);
+      }
+    }
+
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS, "Unliked successfully", null);
   }
@@ -162,14 +203,11 @@ public class LikeServiceImpl implements LikeService {
     try {
       ResponseEntity<ApiResponse<UserDTO>> userResponse = userClient.getUserById(like.getUserId());
       userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
-      log.info("Fetched userDTO: {}", userDTO);
     } catch (Exception ex) {
       log.error("Failed to fetch userDTO for userId {}: {}", like.getUserId(), ex.getMessage(), ex);
     }
     LikeResponse likeResponse = likeMapper.toLikeResponse(like);
-    log.info("Mapped postResponse before setting user: {}", likeResponse);
     likeResponse.setUser(userDTO);
-    log.info("Post response after setting user: {}", likeResponse);
     return likeResponse;
   }
 }

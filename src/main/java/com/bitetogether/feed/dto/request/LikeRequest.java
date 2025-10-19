@@ -7,6 +7,6 @@ import lombok.Setter;
 @Setter
 public class LikeRequest {
   private Long userId;
-  private String postId; // null nếu like comment
-  private String commentId; // null nếu like post
+  private String postId;
+  private String commentId;
 }
