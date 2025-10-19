@@ -38,7 +38,8 @@ public class LikeController {
 
   @Operation(
       summary = "Unlike Post or Comment",
-      description = "Remove a like from a post (if only have postId) or comment (if have both postId and commentId).")
+      description =
+          "Remove a like from a post (if only have postId) or comment (if have both postId and commentId).")
   @DeleteMapping
   public ResponseEntity<ApiResponse<String>> unlike(@RequestBody LikeRequest request) {
     ApiResponse<String> response = likeService.unlike(request);

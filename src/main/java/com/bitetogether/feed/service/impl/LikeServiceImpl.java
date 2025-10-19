@@ -8,9 +8,7 @@ import com.bitetogether.feed.dto.UserDTO;
 import com.bitetogether.feed.dto.request.LikeRequest;
 import com.bitetogether.feed.dto.response.LikeResponse;
 import com.bitetogether.feed.mapper.LikeMapper;
-import com.bitetogether.feed.model.Comment;
 import com.bitetogether.feed.model.Like;
-import com.bitetogether.feed.model.Post;
 import com.bitetogether.feed.repository.CommentRepository;
 import com.bitetogether.feed.repository.LikeRepository;
 import com.bitetogether.feed.repository.PostRepository;
@@ -46,47 +44,17 @@ public class LikeServiceImpl implements LikeService {
         request.getPostId(),
         request.getCommentId());
 
-    if (request.getPostId() == null) {
+    if (request.getPostId() == null)
       return ApiResponseUtil.buildApiResponse(
           ApiResponseStatus.BAD_REQUEST, "postId is required", null);
-    }
 
-    boolean isCommentLike = request.getCommentId() != null && !request.getCommentId().isBlank();
+    boolean isComment = isCommentTarget(request);
 
-    boolean alreadyLiked;
-    if (isCommentLike) {
-      alreadyLiked =
-          likeRepository
-              .findByUserIdAndCommentId(
-                  request.getUserId(), request.getCommentId(), PageRequest.of(0, 1))
-              .hasContent();
-    } else {
-      alreadyLiked =
-          likeRepository
-              .findByUserIdAndPostId(request.getUserId(), request.getPostId(), PageRequest.of(0, 1))
-              .hasContent();
-    }
-
-    if (alreadyLiked) {
+    if (alreadyLiked(request, isComment))
       return ApiResponseUtil.buildApiResponse(ApiResponseStatus.CONFLICT, "Already liked", null);
-    }
 
-    Like like = likeMapper.toLike(request);
-    Like saved = likeRepository.save(like);
-
-    if (isCommentLike) {
-      Comment comment = commentRepository.findById(request.getCommentId()).orElse(null);
-      if (comment != null) {
-        comment.setLikeCount(comment.getLikeCount() + 1);
-        commentRepository.save(comment);
-      }
-    } else {
-      Post post = postRepository.findById(request.getPostId()).orElse(null);
-      if (post != null) {
-        post.setLikeCount(post.getLikeCount() + 1);
-        postRepository.save(post);
-      }
-    }
+    Like saved = likeRepository.save(likeMapper.toLike(request));
+    updateLikeCount(request, isComment, 1);
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS, "Liked successfully", mapLikeToLikeResponseWithUser(saved));
@@ -101,51 +69,18 @@ public class LikeServiceImpl implements LikeService {
         request.getPostId(),
         request.getCommentId());
 
-    // Validation
-    if (request.getPostId() == null) {
+    if (request.getPostId() == null)
       return ApiResponseUtil.buildApiResponse(
           ApiResponseStatus.BAD_REQUEST, "postId is required", null);
-    }
 
-    boolean isCommentUnlike = request.getCommentId() != null && !request.getCommentId().isBlank();
+    boolean isComment = isCommentTarget(request);
+    Like like = findExistingLike(request, isComment);
 
-    Like like;
-    if (isCommentUnlike) {
-      like =
-          likeRepository
-              .findByUserIdAndCommentId(
-                  request.getUserId(), request.getCommentId(), PageRequest.of(0, 1))
-              .stream()
-              .findFirst()
-              .orElse(null);
-    } else {
-      like =
-          likeRepository
-              .findByUserIdAndPostId(request.getUserId(), request.getPostId(), PageRequest.of(0, 1))
-              .stream()
-              .findFirst()
-              .orElse(null);
-    }
-
-    if (like == null) {
+    if (like == null)
       return ApiResponseUtil.buildApiResponse(ApiResponseStatus.NOT_FOUND, "Like not found", null);
-    }
 
     likeRepository.delete(like);
-
-    if (isCommentUnlike) {
-      Comment comment = commentRepository.findById(request.getCommentId()).orElse(null);
-      if (comment != null) {
-        comment.setLikeCount(Math.max(0, comment.getLikeCount() - 1));
-        commentRepository.save(comment);
-      }
-    } else {
-      Post post = postRepository.findById(request.getPostId()).orElse(null);
-      if (post != null) {
-        post.setLikeCount(Math.max(0, post.getLikeCount() - 1));
-        postRepository.save(post);
-      }
-    }
+    updateLikeCount(request, isComment, -1);
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS, "Unliked successfully", null);
@@ -209,5 +144,57 @@ public class LikeServiceImpl implements LikeService {
     LikeResponse likeResponse = likeMapper.toLikeResponse(like);
     likeResponse.setUser(userDTO);
     return likeResponse;
+  }
+
+  private boolean isCommentTarget(LikeRequest request) {
+    return request.getCommentId() != null && !request.getCommentId().isBlank();
+  }
+
+  private boolean alreadyLiked(LikeRequest request, boolean isComment) {
+    if (isComment) {
+      return likeRepository
+          .findByUserIdAndCommentId(
+              request.getUserId(), request.getCommentId(), PageRequest.of(0, 1))
+          .hasContent();
+    }
+    return likeRepository
+        .findByUserIdAndPostId(request.getUserId(), request.getPostId(), PageRequest.of(0, 1))
+        .hasContent();
+  }
+
+  private Like findExistingLike(LikeRequest request, boolean isComment) {
+    if (isComment) {
+      return likeRepository
+          .findByUserIdAndCommentId(
+              request.getUserId(), request.getCommentId(), PageRequest.of(0, 1))
+          .stream()
+          .findFirst()
+          .orElse(null);
+    }
+    return likeRepository
+        .findByUserIdAndPostId(request.getUserId(), request.getPostId(), PageRequest.of(0, 1))
+        .stream()
+        .findFirst()
+        .orElse(null);
+  }
+
+  private void updateLikeCount(LikeRequest request, boolean isComment, int delta) {
+    if (isComment) {
+      commentRepository
+          .findById(request.getCommentId())
+          .ifPresent(
+              comment -> {
+                comment.setLikeCount(Math.max(0, comment.getLikeCount() + delta));
+                commentRepository.save(comment);
+              });
+    } else {
+      postRepository
+          .findById(request.getPostId())
+          .ifPresent(
+              post -> {
+                post.setLikeCount(Math.max(0, post.getLikeCount() + delta));
+                postRepository.save(post);
+              });
+    }
   }
 }
