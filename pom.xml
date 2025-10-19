@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.bitetogether</groupId>
-	<artifactId>feed-service</artifactId>
+	<artifactId>post-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>feed-service</name>
+	<name>post-service</name>
 	<description>User service</description>
 	<url/>
 	<licenses>
@@ -85,6 +85,17 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

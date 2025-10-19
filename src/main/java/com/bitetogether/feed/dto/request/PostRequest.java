@@ -3,7 +3,7 @@ package com.bitetogether.feed.dto.request;
 import lombok.Data;
 
 @Data
-public class FeedRequest {
+public class PostRequest {
   private Long userId;
   private Long placeId;
   private String content;
