@@ -156,20 +156,20 @@ public class LikeServiceImpl implements LikeService {
         responsePage.getTotalElements());
   }
 
-    private LikeResponse mapLikeToLikeResponseWithUser(Like like) {
-        log.info("Mapping like to response, like: {}", like);
-        UserDTO userDTO = null;
-        try {
-            ResponseEntity<ApiResponse<UserDTO>> userResponse = userClient.getUserById(like.getUserId());
-            userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
-            log.info("Fetched userDTO: {}", userDTO);
-        } catch (Exception ex) {
-            log.error("Failed to fetch userDTO for userId {}: {}", like.getUserId(), ex.getMessage(), ex);
-        }
-        LikeResponse likeResponse = likeMapper.toLikeResponse(like);
-        log.info("Mapped postResponse before setting user: {}", likeResponse);
-        likeResponse.setUser(userDTO);
-        log.info("Post response after setting user: {}", likeResponse);
-        return likeResponse;
+  private LikeResponse mapLikeToLikeResponseWithUser(Like like) {
+    log.info("Mapping like to response, like: {}", like);
+    UserDTO userDTO = null;
+    try {
+      ResponseEntity<ApiResponse<UserDTO>> userResponse = userClient.getUserById(like.getUserId());
+      userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
+      log.info("Fetched userDTO: {}", userDTO);
+    } catch (Exception ex) {
+      log.error("Failed to fetch userDTO for userId {}: {}", like.getUserId(), ex.getMessage(), ex);
     }
+    LikeResponse likeResponse = likeMapper.toLikeResponse(like);
+    log.info("Mapped postResponse before setting user: {}", likeResponse);
+    likeResponse.setUser(userDTO);
+    log.info("Post response after setting user: {}", likeResponse);
+    return likeResponse;
+  }
 }

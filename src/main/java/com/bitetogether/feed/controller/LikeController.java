@@ -4,11 +4,13 @@ import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FEED
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.feed.dto.request.LikeRequest;
 import com.bitetogether.feed.dto.response.LikeResponse;
 import com.bitetogether.feed.service.inter.LikeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -47,10 +49,10 @@ public class LikeController {
       description = "Retrieve all likes created by a specific user.")
   @GetMapping("/user/{userId}")
   public ResponseEntity<ApiResponsePagination<LikeResponse>> getLikesByUser(
-      @PathVariable Long userId,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size) {
-    ApiResponsePagination<LikeResponse> response = likeService.getLikesByUser(userId, page, size);
+      @PathVariable Long userId, @Valid @RequestBody PaginationRequest paginationRequest) {
+    ApiResponsePagination<LikeResponse> response =
+        likeService.getLikesByUser(
+            userId, paginationRequest.getPage(), paginationRequest.getSize());
     return ResponseEntity.ok(response);
   }
 
@@ -59,10 +61,10 @@ public class LikeController {
       description = "Retrieve all likes associated with a specific post.")
   @GetMapping("/post/{postId}")
   public ResponseEntity<ApiResponsePagination<LikeResponse>> getLikesByPost(
-      @PathVariable String postId,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size) {
-    ApiResponsePagination<LikeResponse> response = likeService.getLikesByPost(postId, page, size);
+      @PathVariable String postId, @Valid @RequestBody PaginationRequest paginationRequest) {
+    ApiResponsePagination<LikeResponse> response =
+        likeService.getLikesByPost(
+            postId, paginationRequest.getPage(), paginationRequest.getSize());
     return ResponseEntity.ok(response);
   }
 
@@ -71,11 +73,10 @@ public class LikeController {
       description = "Retrieve all likes associated with a specific comment.")
   @GetMapping("/comment/{commentId}")
   public ResponseEntity<ApiResponsePagination<LikeResponse>> getLikesByComment(
-      @PathVariable String commentId,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size) {
+      @PathVariable String commentId, @Valid @RequestBody PaginationRequest paginationRequest) {
     ApiResponsePagination<LikeResponse> response =
-        likeService.getLikesByComment(commentId, page, size);
+        likeService.getLikesByComment(
+            commentId, paginationRequest.getPage(), paginationRequest.getSize());
     return ResponseEntity.ok(response);
   }
 }

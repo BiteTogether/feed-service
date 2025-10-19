@@ -1,8 +1,7 @@
 package com.bitetogether.feed.dto.response;
 
-import java.time.Instant;
-
 import com.bitetogether.feed.dto.UserDTO;
+import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
 
