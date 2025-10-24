@@ -10,6 +10,14 @@ RUN export $(grep -v '^#' .env | xargs) && mvn clean package -s /root/.m2/settin
 # Run stage
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
+
+# Install CA certificates and update the trust store
+RUN apk update && apk add --no-cache ca-certificates && update-ca-certificates
+
+# If a custom MongoDB certificate is needed, copy it and update certificates
+# COPY mongo-atlas.pem /usr/local/share/ca-certificates/mongo-atlas.crt
+# RUN update-ca-certificates
+
 COPY --from=build /app/target/*.jar app.jar
 COPY --from=build /app/.env .env
 EXPOSE 8082
