@@ -2,7 +2,6 @@ package com.bitetogether.feed.service.impl;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
-import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
 import com.bitetogether.feed.dto.FriendDTO;
@@ -117,12 +116,8 @@ public class PostServiceImpl implements PostService {
 
     List<FriendDTO> friends;
     try {
-      PaginationRequest paginationRequest = new PaginationRequest();
-      paginationRequest.setPage(0);
-      paginationRequest.setSize(100);
-      paginationRequest.setLimit(100);
       ResponseEntity<ApiResponsePagination<FriendDTO>> friendResponse =
-          userClient.getFriendList(paginationRequest);
+          userClient.getFriendList(0, 100);
       friends = friendResponse.getBody() != null ? friendResponse.getBody().getData() : List.of();
     } catch (Exception ex) {
       log.error("Failed to fetch friend list: {}", ex.getMessage(), ex);
