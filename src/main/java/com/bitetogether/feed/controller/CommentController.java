@@ -4,7 +4,6 @@ import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FEED
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
-import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.feed.dto.request.CommentRequest;
 import com.bitetogether.feed.dto.response.CommentResponse;
 import com.bitetogether.feed.service.inter.CommentService;
@@ -47,10 +46,11 @@ public class CommentController {
       description = "Retrieve all comments for a specific post.")
   @GetMapping("/post/{postId}")
   public ResponseEntity<ApiResponsePagination<CommentResponse>> getCommentsByPost(
-      @PathVariable String postId, @Valid @RequestBody PaginationRequest paginationRequest) {
+      @PathVariable String postId,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size) {
     ApiResponsePagination<CommentResponse> response =
-        commentService.getCommentsByPostId(
-            postId, paginationRequest.getPage(), paginationRequest.getSize());
+        commentService.getCommentsByPostId(postId, page, size);
     return ResponseEntity.ok(response);
   }
 
@@ -59,10 +59,11 @@ public class CommentController {
       description = "Retrieve all comments created by a user.")
   @GetMapping("/user/{userId}")
   public ResponseEntity<ApiResponsePagination<CommentResponse>> getCommentsByUser(
-      @PathVariable Long userId, @Valid @RequestBody PaginationRequest paginationRequest) {
+      @PathVariable Long userId,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size) {
     ApiResponsePagination<CommentResponse> response =
-        commentService.getCommentsByUserId(
-            userId, paginationRequest.getPage(), paginationRequest.getSize());
+        commentService.getCommentsByUserId(userId, page, size);
     return ResponseEntity.ok(response);
   }
 

@@ -4,13 +4,11 @@ import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FEED
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
-import com.bitetogether.common.dto.PaginationRequest;
 import com.bitetogether.feed.dto.request.PostRequest;
 import com.bitetogether.feed.dto.response.PostResponse;
 import com.bitetogether.feed.service.inter.PostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -47,19 +45,18 @@ public class PostController {
       description = "Retrieve all posts created by a specific user.")
   @GetMapping("/user/{userId}")
   public ResponseEntity<ApiResponsePagination<PostResponse>> getPostsByUserId(
-      @PathVariable Long userId, @Valid @RequestBody PaginationRequest paginationRequest) {
-    ApiResponsePagination<PostResponse> response =
-        postService.getPostsByUserId(
-            userId, paginationRequest.getPage(), paginationRequest.getSize());
+      @PathVariable Long userId,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size) {
+    ApiResponsePagination<PostResponse> response = postService.getPostsByUserId(userId, page, size);
     return ResponseEntity.ok(response);
   }
 
   @Operation(summary = "Get New Feeds", description = "Retrieve the latest posts for the new feed.")
   @GetMapping("/new-feeds")
   public ResponseEntity<ApiResponsePagination<PostResponse>> getNewFeeds(
-      @Valid @RequestBody PaginationRequest paginationRequest) {
-    ApiResponsePagination<PostResponse> response =
-        postService.getNewFeed(paginationRequest.getPage(), paginationRequest.getSize());
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+    ApiResponsePagination<PostResponse> response = postService.getNewFeed(page, size);
     return ResponseEntity.ok(response);
   }
 
