@@ -1,6 +1,6 @@
 package com.bitetogether.feed.configuration.mongodb;
 
-import static com.bitetogether.common.util.SecurityUtils.getCurrentUserId;
+import static com.bitetogether.common.util.UserContextUtils.getCurrentUserId;
 
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
