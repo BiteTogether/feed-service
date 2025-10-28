@@ -1,6 +1,6 @@
 package com.bitetogether.feed.controller;
 
-import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FEED;
+import static com.bitetogether.common.util.Constants.*;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
@@ -46,8 +46,8 @@ public class PostController {
   @GetMapping("/user/{userId}")
   public ResponseEntity<ApiResponsePagination<PostResponse>> getPostsByUserId(
       @PathVariable Long userId,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size) {
+      @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
+      @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
     ApiResponsePagination<PostResponse> response = postService.getPostsByUserId(userId, page, size);
     return ResponseEntity.ok(response);
   }
@@ -55,7 +55,8 @@ public class PostController {
   @Operation(summary = "Get New Feeds", description = "Retrieve the latest posts for the new feed.")
   @GetMapping("/new-feeds")
   public ResponseEntity<ApiResponsePagination<PostResponse>> getNewFeeds(
-      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+      @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
+      @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
     ApiResponsePagination<PostResponse> response = postService.getNewFeed(page, size);
     return ResponseEntity.ok(response);
   }

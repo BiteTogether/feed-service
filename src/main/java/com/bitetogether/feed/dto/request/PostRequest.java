@@ -5,9 +5,6 @@ import lombok.Data;
 
 @Data
 public class PostRequest {
-  @Schema(description = "ID of the user creating the post", example = "12345")
-  private Long userId;
-
   @Schema(description = "ID of the place associated with the post", example = "67890")
   private Long placeId;
 

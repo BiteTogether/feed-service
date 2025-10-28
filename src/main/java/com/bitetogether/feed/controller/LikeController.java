@@ -1,6 +1,6 @@
 package com.bitetogether.feed.controller;
 
-import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FEED;
+import static com.bitetogether.common.util.Constants.*;
 
 import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
@@ -50,8 +50,8 @@ public class LikeController {
   @GetMapping("/user/{userId}")
   public ResponseEntity<ApiResponsePagination<LikeResponse>> getLikesByUser(
       @PathVariable Long userId,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size) {
+      @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
+      @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
     ApiResponsePagination<LikeResponse> response = likeService.getLikesByUser(userId, page, size);
     return ResponseEntity.ok(response);
   }
@@ -62,8 +62,8 @@ public class LikeController {
   @GetMapping("/post/{postId}")
   public ResponseEntity<ApiResponsePagination<LikeResponse>> getLikesByPost(
       @PathVariable String postId,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size) {
+      @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
+      @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
     ApiResponsePagination<LikeResponse> response = likeService.getLikesByPost(postId, page, size);
     return ResponseEntity.ok(response);
   }
@@ -74,8 +74,8 @@ public class LikeController {
   @GetMapping("/comment/{commentId}")
   public ResponseEntity<ApiResponsePagination<LikeResponse>> getLikesByComment(
       @PathVariable String commentId,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size) {
+      @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
+      @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
     ApiResponsePagination<LikeResponse> response =
         likeService.getLikesByComment(commentId, page, size);
     return ResponseEntity.ok(response);

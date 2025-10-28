@@ -5,9 +5,6 @@ import lombok.Data;
 
 @Data
 public class CommentRequest {
-  @Schema(description = "ID of the user making the comment", example = "12345")
-  private Long userId;
-
   @Schema(description = "ID of the post being commented on", example = "68f5007b8082ca7e84af80e1")
   private String postId;
 

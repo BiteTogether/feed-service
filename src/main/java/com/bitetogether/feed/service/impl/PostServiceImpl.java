@@ -4,6 +4,7 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
+import com.bitetogether.common.util.UserContextUtils;
 import com.bitetogether.feed.dto.FriendDTO;
 import com.bitetogether.feed.dto.UserDTO;
 import com.bitetogether.feed.dto.request.PostRequest;
@@ -40,8 +41,11 @@ public class PostServiceImpl implements PostService {
   @Override
   @Transactional
   public ApiResponse<PostResponse> createPost(PostRequest postRequest) {
+    Long currentUserId = UserContextUtils.getCurrentUserId();
+
     log.info("Creating feed with request: {}", postRequest);
     Post postEntity = postMapper.toPost(postRequest);
+    postEntity.setUserId(currentUserId);
     Post savedPost = postRepository.save(postEntity);
     log.info("Feed saved with ID: {}", savedPost.getId());
     PostResponse response = mapPostToPostResponseWithUser(savedPost);
