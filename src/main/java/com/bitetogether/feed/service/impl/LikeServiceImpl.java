@@ -4,6 +4,7 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
+import com.bitetogether.common.util.UserContextUtils;
 import com.bitetogether.feed.dto.UserDTO;
 import com.bitetogether.feed.dto.request.LikeRequest;
 import com.bitetogether.feed.dto.response.LikeResponse;
@@ -38,9 +39,11 @@ public class LikeServiceImpl implements LikeService {
   @Override
   @Transactional
   public ApiResponse<LikeResponse> like(LikeRequest request) {
+    Long currentUserId = UserContextUtils.getCurrentUserId();
+
     log.info(
         "User {} liking postId={}, commentId={}",
-        request.getUserId(),
+        currentUserId,
         request.getPostId(),
         request.getCommentId());
 
@@ -50,10 +53,11 @@ public class LikeServiceImpl implements LikeService {
 
     boolean isComment = isCommentTarget(request);
 
-    if (alreadyLiked(request, isComment))
+    if (alreadyLiked(request, isComment, currentUserId))
       return ApiResponseUtil.buildApiResponse(ApiResponseStatus.CONFLICT, "Already liked", null);
 
     Like saved = likeRepository.save(likeMapper.toLike(request));
+    saved.setUserId(currentUserId);
     updateLikeCount(request, isComment, 1);
 
     return ApiResponseUtil.buildApiResponse(
@@ -63,9 +67,10 @@ public class LikeServiceImpl implements LikeService {
   @Override
   @Transactional
   public ApiResponse<String> unlike(LikeRequest request) {
+    Long currentUserId = UserContextUtils.getCurrentUserId();
     log.info(
         "User {} unliking postId={}, commentId={}",
-        request.getUserId(),
+        currentUserId,
         request.getPostId(),
         request.getCommentId());
 
@@ -74,7 +79,7 @@ public class LikeServiceImpl implements LikeService {
           ApiResponseStatus.BAD_REQUEST, "postId is required", null);
 
     boolean isComment = isCommentTarget(request);
-    Like like = findExistingLike(request, isComment);
+    Like like = findExistingLike(request, isComment, currentUserId);
 
     if (like == null)
       return ApiResponseUtil.buildApiResponse(ApiResponseStatus.NOT_FOUND, "Like not found", null);
@@ -150,29 +155,27 @@ public class LikeServiceImpl implements LikeService {
     return request.getCommentId() != null && !request.getCommentId().isBlank();
   }
 
-  private boolean alreadyLiked(LikeRequest request, boolean isComment) {
+  private boolean alreadyLiked(LikeRequest request, boolean isComment, Long currentUserId) {
     if (isComment) {
       return likeRepository
-          .findByUserIdAndCommentId(
-              request.getUserId(), request.getCommentId(), PageRequest.of(0, 1))
+          .findByUserIdAndCommentId(currentUserId, request.getCommentId(), PageRequest.of(0, 1))
           .hasContent();
     }
     return likeRepository
-        .findByUserIdAndPostId(request.getUserId(), request.getPostId(), PageRequest.of(0, 1))
+        .findByUserIdAndPostId(currentUserId, request.getPostId(), PageRequest.of(0, 1))
         .hasContent();
   }
 
-  private Like findExistingLike(LikeRequest request, boolean isComment) {
+  private Like findExistingLike(LikeRequest request, boolean isComment, Long currentUserId) {
     if (isComment) {
       return likeRepository
-          .findByUserIdAndCommentId(
-              request.getUserId(), request.getCommentId(), PageRequest.of(0, 1))
+          .findByUserIdAndCommentId(currentUserId, request.getCommentId(), PageRequest.of(0, 1))
           .stream()
           .findFirst()
           .orElse(null);
     }
     return likeRepository
-        .findByUserIdAndPostId(request.getUserId(), request.getPostId(), PageRequest.of(0, 1))
+        .findByUserIdAndPostId(currentUserId, request.getPostId(), PageRequest.of(0, 1))
         .stream()
         .findFirst()
         .orElse(null);

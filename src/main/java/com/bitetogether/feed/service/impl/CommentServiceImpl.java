@@ -4,6 +4,7 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
+import com.bitetogether.common.util.UserContextUtils;
 import com.bitetogether.feed.dto.UserDTO;
 import com.bitetogether.feed.dto.request.CommentRequest;
 import com.bitetogether.feed.dto.response.CommentResponse;
@@ -37,14 +38,15 @@ public class CommentServiceImpl implements CommentService {
   @Override
   @Transactional
   public ApiResponse<CommentResponse> createComment(CommentRequest request) {
-    log.info(
-        "Creating comment for postId={} by userId={}", request.getPostId(), request.getUserId());
+    Long currentUserId = UserContextUtils.getCurrentUserId();
+    log.info("Creating comment for postId={} by userId={}", request.getPostId(), currentUserId);
 
     Post post = postRepository.findById(request.getPostId()).orElse(null);
     if (post == null)
       return ApiResponseUtil.buildApiResponse(ApiResponseStatus.NOT_FOUND, "Post not found", null);
 
     Comment comment = commentMapper.toComment(request);
+    comment.setUserId(currentUserId);
     Comment saved = commentRepository.save(comment);
 
     post.setCommentCount(post.getCommentCount() + 1);
