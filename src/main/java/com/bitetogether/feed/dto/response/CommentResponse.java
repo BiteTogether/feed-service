@@ -20,6 +20,9 @@ public class CommentResponse extends BaseResponse {
   @Schema(description = "Number of likes on the comment", example = "42")
   private Integer likeCount;
 
+  @Schema(description = "Whether the current user has already liked this comment", example = "true")
+  private boolean alreadyLiked;
+
   @Schema(description = "User who made the comment")
   private UserDTO user;
 }

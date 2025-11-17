@@ -10,7 +10,9 @@ import com.bitetogether.feed.dto.UserDTO;
 import com.bitetogether.feed.dto.request.PostRequest;
 import com.bitetogether.feed.dto.response.PostResponse;
 import com.bitetogether.feed.mapper.PostMapper;
+import com.bitetogether.feed.model.Like;
 import com.bitetogether.feed.model.Post;
+import com.bitetogether.feed.repository.LikeRepository;
 import com.bitetogether.feed.repository.PostRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
 import com.bitetogether.feed.service.inter.PostService;
@@ -37,6 +39,7 @@ public class PostServiceImpl implements PostService {
   PostRepository postRepository;
   PostMapper postMapper;
   UserClient userClient;
+  LikeRepository likeRepository;
 
   @Override
   @Transactional
@@ -73,14 +76,48 @@ public class PostServiceImpl implements PostService {
         "Getting posts for user ID: {} with pagination - page: {}, size: {}", userId, page, size);
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     Page<Post> feedPage = postRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
-    Page<PostResponse> responsePage = feedPage.map(this::mapPostToPostResponseWithUser);
+
+    // Batch query to avoid N+1 problem for alreadyLiked
+    List<PostResponse> responses = mapPostsToResponsesWithBatchLikes(feedPage.getContent());
+
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
-        responsePage.getContent(),
-        responsePage.getNumber(),
-        responsePage.getTotalPages(),
-        responsePage.getTotalElements());
+        responses,
+        feedPage.getNumber(),
+        feedPage.getTotalPages(),
+        feedPage.getTotalElements());
+  }
+
+  private List<PostResponse> mapPostsToResponsesWithBatchLikes(List<Post> posts) {
+    if (posts.isEmpty()) {
+      return List.of();
+    }
+
+    // Batch query for likes
+    List<String> postIds = posts.stream().map(Post::getId).toList();
+    List<String> likedPostIds = List.of();
+    try {
+      Long currentUserId = UserContextUtils.getCurrentUserId();
+      likedPostIds =
+          likeRepository.findByUserIdAndPostIdIn(currentUserId, postIds).stream()
+              .map(Like::getPostId)
+              .toList();
+    } catch (Exception ex) {
+      log.debug("Could not fetch batch likes: {}", ex.getMessage());
+    }
+
+    // Map posts to responses
+    List<String> finalLikedPostIds = likedPostIds;
+    return posts.stream()
+        .map(
+            post -> {
+              PostResponse response = mapPostToPostResponseWithUser(post);
+              // Override the alreadyLiked with batch result
+              response.setAlreadyLiked(finalLikedPostIds.contains(post.getId()));
+              return response;
+            })
+        .toList();
   }
 
   @Override
@@ -132,14 +169,17 @@ public class PostServiceImpl implements PostService {
     Page<Post> feedPage =
         postRepository.findByUserIdInAndCreatedAtAfter(
             friendIds, Instant.now().minus(2, ChronoUnit.DAYS), pageable);
-    Page<PostResponse> responsePage = feedPage.map(this::mapPostToPostResponseWithUser);
+
+    // Use batch optimization for alreadyLiked
+    List<PostResponse> responses = mapPostsToResponsesWithBatchLikes(feedPage.getContent());
+
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
-        responsePage.getContent(),
-        responsePage.getNumber(),
-        responsePage.getTotalPages(),
-        responsePage.getTotalElements());
+        responses,
+        feedPage.getNumber(),
+        feedPage.getTotalPages(),
+        feedPage.getTotalElements());
   }
 
   private PostResponse mapPostToPostResponseWithUser(Post post) {
@@ -153,6 +193,17 @@ public class PostServiceImpl implements PostService {
     }
     PostResponse postResponse = postMapper.toPostResponse(post);
     postResponse.setUser(userDTO);
+
+    // Check if current user has already liked this post
+    try {
+      Long currentUserId = UserContextUtils.getCurrentUserId();
+      boolean alreadyLiked = likeRepository.existsByUserIdAndPostId(currentUserId, post.getId());
+      postResponse.setAlreadyLiked(alreadyLiked);
+    } catch (Exception ex) {
+      log.debug("Could not determine alreadyLiked status: {}", ex.getMessage());
+      postResponse.setAlreadyLiked(false);
+    }
+
     return postResponse;
   }
 

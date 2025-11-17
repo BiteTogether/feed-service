@@ -10,11 +10,14 @@ import com.bitetogether.feed.dto.request.CommentRequest;
 import com.bitetogether.feed.dto.response.CommentResponse;
 import com.bitetogether.feed.mapper.CommentMapper;
 import com.bitetogether.feed.model.Comment;
+import com.bitetogether.feed.model.Like;
 import com.bitetogether.feed.model.Post;
 import com.bitetogether.feed.repository.CommentRepository;
+import com.bitetogether.feed.repository.LikeRepository;
 import com.bitetogether.feed.repository.PostRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
 import com.bitetogether.feed.service.inter.CommentService;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -34,6 +37,7 @@ public class CommentServiceImpl implements CommentService {
   PostRepository postRepository;
   CommentMapper commentMapper;
   UserClient userClient;
+  LikeRepository likeRepository;
 
   @Override
   @Transactional
@@ -78,15 +82,17 @@ public class CommentServiceImpl implements CommentService {
       String postId, int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     Page<Comment> commentPage = commentRepository.findByPostId(postId, pageable);
-    Page<CommentResponse> responsePage = commentPage.map(this::mapCommentToResponseWithUser);
+
+    List<CommentResponse> responses =
+        mapCommentsToResponsesWithBatchLikes(commentPage.getContent());
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
-        responsePage.getContent(),
-        responsePage.getNumber(),
-        responsePage.getTotalPages(),
-        responsePage.getTotalElements());
+        responses,
+        commentPage.getNumber(),
+        commentPage.getTotalPages(),
+        commentPage.getTotalElements());
   }
 
   @Override
@@ -95,15 +101,17 @@ public class CommentServiceImpl implements CommentService {
       Long userId, int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     Page<Comment> commentPage = commentRepository.findByUserId(userId, pageable);
-    Page<CommentResponse> responsePage = commentPage.map(this::mapCommentToResponseWithUser);
+
+    List<CommentResponse> responses =
+        mapCommentsToResponsesWithBatchLikes(commentPage.getContent());
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
-        responsePage.getContent(),
-        responsePage.getNumber(),
-        responsePage.getTotalPages(),
-        responsePage.getTotalElements());
+        responses,
+        commentPage.getNumber(),
+        commentPage.getTotalPages(),
+        commentPage.getTotalElements());
   }
 
   @Override
@@ -153,6 +161,47 @@ public class CommentServiceImpl implements CommentService {
     }
     CommentResponse response = commentMapper.toCommentResponse(comment);
     response.setUser(userDTO);
+
+    // Check if current user has already liked this comment
+    try {
+      Long currentUserId = UserContextUtils.getCurrentUserId();
+      boolean alreadyLiked =
+          likeRepository.existsByUserIdAndCommentId(currentUserId, comment.getId());
+      response.setAlreadyLiked(alreadyLiked);
+    } catch (Exception ex) {
+      log.debug("Could not determine alreadyLiked status: {}", ex.getMessage());
+      response.setAlreadyLiked(false);
+    }
+
     return response;
+  }
+
+  private List<CommentResponse> mapCommentsToResponsesWithBatchLikes(List<Comment> comments) {
+    if (comments.isEmpty()) {
+      return List.of();
+    }
+
+    List<String> commentIds = comments.stream().map(Comment::getId).toList();
+    List<String> likedCommentIds = List.of();
+    try {
+      Long currentUserId = UserContextUtils.getCurrentUserId();
+      likedCommentIds =
+          likeRepository.findByUserIdAndCommentIdIn(currentUserId, commentIds).stream()
+              .map(Like::getCommentId)
+              .toList();
+    } catch (Exception ex) {
+      log.debug("Could not fetch batch likes: {}", ex.getMessage());
+    }
+
+    List<String> finalLikedCommentIds = likedCommentIds;
+    return comments.stream()
+        .map(
+            comment -> {
+              CommentResponse response = mapCommentToResponseWithUser(comment);
+              // Override the alreadyLiked with batch result
+              response.setAlreadyLiked(finalLikedCommentIds.contains(comment.getId()));
+              return response;
+            })
+        .toList();
   }
 }
