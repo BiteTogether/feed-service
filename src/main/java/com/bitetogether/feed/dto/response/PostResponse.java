@@ -29,6 +29,9 @@ public class PostResponse extends BaseResponse {
   @Schema(description = "Number of comments on the post", example = "25")
   private Integer commentCount;
 
+  @Schema(description = "Whether the current user has already liked this post", example = "true")
+  private boolean alreadyLiked;
+
   @Schema(description = "User who created the post")
   private UserDTO user;
 }
