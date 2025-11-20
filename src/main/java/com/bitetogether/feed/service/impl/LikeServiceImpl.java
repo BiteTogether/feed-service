@@ -56,8 +56,9 @@ public class LikeServiceImpl implements LikeService {
     if (alreadyLiked(request, isComment, currentUserId))
       return ApiResponseUtil.buildApiResponse(ApiResponseStatus.CONFLICT, "Already liked", null);
 
-    Like saved = likeRepository.save(likeMapper.toLike(request));
-    saved.setUserId(currentUserId);
+    Like like = likeMapper.toLike(request);
+    like.setUserId(currentUserId);
+    Like saved = likeRepository.save(like);
     updateLikeCount(request, isComment, 1);
 
     return ApiResponseUtil.buildApiResponse(
