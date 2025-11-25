@@ -122,6 +122,16 @@ public class CommentServiceImpl implements CommentService {
       return ApiResponseUtil.buildApiResponse(
           ApiResponseStatus.NOT_FOUND, "Comment not found", null);
 
+    Long currentUserId = UserContextUtils.getCurrentUserId();
+    if (!existing.getUserId().equals(currentUserId)) {
+      log.warn("User {} attempted to update comment {} owned by user {}",
+               currentUserId, id, existing.getUserId());
+      return ApiResponseUtil.buildApiResponse(
+          ApiResponseStatus.FORBIDDEN,
+          "You are not authorized to update this comment",
+          null);
+    }
+
     commentMapper.updateCommentFromCommentRequest(request, existing);
     Comment updated = commentRepository.save(existing);
 
@@ -138,6 +148,16 @@ public class CommentServiceImpl implements CommentService {
     if (existing == null)
       return ApiResponseUtil.buildApiResponse(
           ApiResponseStatus.NOT_FOUND, "Comment not found", null);
+
+    Long currentUserId = UserContextUtils.getCurrentUserId();
+    if (!existing.getUserId().equals(currentUserId)) {
+      log.warn("User {} attempted to delete comment {} owned by user {}",
+               currentUserId, id, existing.getUserId());
+      return ApiResponseUtil.buildApiResponse(
+          ApiResponseStatus.FORBIDDEN,
+          "You are not authorized to delete this comment",
+          null);
+    }
 
     String postId = existing.getPostId();
     Post post = postRepository.findById(postId).orElse(null);
