@@ -67,6 +67,17 @@ public class CommentController {
     return ResponseEntity.ok(response);
   }
 
+  @Operation(
+      summary = "Get Replies by Comment",
+      description = "Retrieve all replies for a specific comment.")
+  @GetMapping("/{commentId}/replies")
+  public ResponseEntity<ApiResponse<java.util.List<CommentResponse>>> getRepliesByComment(
+      @PathVariable String commentId) {
+    ApiResponse<java.util.List<CommentResponse>> response =
+        commentService.getRepliesByCommentId(commentId);
+    return ResponseEntity.ok(response);
+  }
+
   @Operation(summary = "Update Comment", description = "Update the content of an existing comment.")
   @PutMapping("/{commentId}")
   public ResponseEntity<ApiResponse<CommentResponse>> updateComment(

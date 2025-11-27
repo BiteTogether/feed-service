@@ -27,4 +27,7 @@ public class Comment extends BaseModel {
 
   @Field("like_count")
   private Integer likeCount = 0;
+
+  @Field("parent_comment_id")
+  private String parentCommentId; // null for top-level comments, not null for replies
 }

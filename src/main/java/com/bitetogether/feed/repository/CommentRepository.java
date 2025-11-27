@@ -9,4 +9,13 @@ public interface CommentRepository extends MongoRepository<Comment, String> {
   Page<Comment> findByPostId(String postId, Pageable pageable);
 
   Page<Comment> findByUserId(Long userId, Pageable pageable);
+
+  // Find top-level comments (comments without parent)
+  Page<Comment> findByPostIdAndParentCommentIdIsNull(String postId, Pageable pageable);
+
+  // Find replies to a specific comment
+  java.util.List<Comment> findByParentCommentId(String parentCommentId);
+
+  // Count replies to a comment
+  long countByParentCommentId(String parentCommentId);
 }

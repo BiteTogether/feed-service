@@ -14,6 +14,8 @@ public interface CommentService {
 
   ApiResponsePagination<CommentResponse> getCommentsByUserId(Long userId, int page, int size);
 
+  ApiResponse<java.util.List<CommentResponse>> getRepliesByCommentId(String commentId);
+
   ApiResponse<CommentResponse> updateComment(String commentId, CommentRequest request);
 
   ApiResponse<String> deleteComment(String commentId);
