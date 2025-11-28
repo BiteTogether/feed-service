@@ -52,7 +52,6 @@ public class CommentServiceImpl implements CommentService {
     Comment comment = commentMapper.toComment(request);
     comment.setUserId(currentUserId);
 
-    // Validate parent comment exists if this is a reply
     if (request.getParentCommentId() != null) {
       Comment parentComment = commentRepository.findById(request.getParentCommentId()).orElse(null);
       if (parentComment == null) {
@@ -60,11 +59,13 @@ public class CommentServiceImpl implements CommentService {
             ApiResponseStatus.NOT_FOUND, "Parent comment not found", null);
       }
       log.info("Creating reply comment to parentCommentId={}", request.getParentCommentId());
+
+      parentComment.setRepliesCount(parentComment.getRepliesCount() + 1);
+      commentRepository.save(parentComment);
     }
 
     Comment saved = commentRepository.save(comment);
 
-    // Increment post comment count for both top-level comments and replies
     post.setCommentCount(post.getCommentCount() + 1);
     postRepository.save(post);
 
@@ -82,10 +83,11 @@ public class CommentServiceImpl implements CommentService {
       return ApiResponseUtil.buildApiResponse(
           ApiResponseStatus.NOT_FOUND, "Comment not found", null);
 
+    List<CommentResponse> responses = mapCommentsWithAlreadyLiked(List.of(comment));
+    CommentResponse response = responses.isEmpty() ? null : responses.get(0);
+
     return ApiResponseUtil.buildApiResponse(
-        ApiResponseStatus.SUCCESS,
-        "Comment retrieved successfully",
-        mapCommentToResponseWithUser(comment));
+        ApiResponseStatus.SUCCESS, "Comment retrieved successfully", response);
   }
 
   @Override
@@ -97,8 +99,7 @@ public class CommentServiceImpl implements CommentService {
     Page<Comment> commentPage =
         commentRepository.findByPostIdAndParentCommentIdIsNull(postId, pageable);
 
-    List<CommentResponse> responses =
-        mapCommentsToResponsesWithBatchLikesAndReplies(commentPage.getContent());
+    List<CommentResponse> responses = mapCommentsWithAlreadyLiked(commentPage.getContent());
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
@@ -116,8 +117,7 @@ public class CommentServiceImpl implements CommentService {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     Page<Comment> commentPage = commentRepository.findByUserId(userId, pageable);
 
-    List<CommentResponse> responses =
-        mapCommentsToResponsesWithBatchLikes(commentPage.getContent());
+    List<CommentResponse> responses = mapCommentsWithAlreadyLiked(commentPage.getContent());
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
@@ -150,10 +150,12 @@ public class CommentServiceImpl implements CommentService {
     commentMapper.updateCommentFromCommentRequest(request, existing);
     Comment updated = commentRepository.save(existing);
 
+    // Map comment with likes and replies
+    List<CommentResponse> responses = mapCommentsWithAlreadyLiked(List.of(updated));
+    CommentResponse response = responses.isEmpty() ? null : responses.get(0);
+
     return ApiResponseUtil.buildApiResponse(
-        ApiResponseStatus.SUCCESS,
-        "Comment updated successfully",
-        mapCommentToResponseWithUser(updated));
+        ApiResponseStatus.SUCCESS, "Comment updated successfully", response);
   }
 
   @Override
@@ -175,12 +177,20 @@ public class CommentServiceImpl implements CommentService {
           ApiResponseStatus.FORBIDDEN, "You are not authorized to delete this comment", null);
     }
 
-    // Decrement post comment count for both top-level comments and replies
     String postId = existing.getPostId();
     Post post = postRepository.findById(postId).orElse(null);
     if (post != null) {
       post.setCommentCount(Math.max(0, post.getCommentCount() - 1));
       postRepository.save(post);
+    }
+
+    if (existing.getParentCommentId() != null) {
+      Comment parentComment =
+          commentRepository.findById(existing.getParentCommentId()).orElse(null);
+      if (parentComment != null) {
+        parentComment.setRepliesCount(Math.max(0, parentComment.getRepliesCount() - 1));
+        commentRepository.save(parentComment);
+      }
     }
 
     commentRepository.delete(existing);
@@ -199,48 +209,39 @@ public class CommentServiceImpl implements CommentService {
     }
     CommentResponse response = commentMapper.toCommentResponse(comment);
     response.setUser(userDTO);
-
-    // Check if current user has already liked this comment
-    try {
-      Long currentUserId = UserContextUtils.getCurrentUserId();
-      boolean alreadyLiked =
-          likeRepository.existsByUserIdAndCommentId(currentUserId, comment.getId());
-      response.setAlreadyLiked(alreadyLiked);
-    } catch (Exception ex) {
-      log.debug("Could not determine alreadyLiked status: {}", ex.getMessage());
-      response.setAlreadyLiked(false);
-    }
-
     return response;
   }
 
-  private List<CommentResponse> mapCommentsToResponsesWithBatchLikes(List<Comment> comments) {
+  private List<String> fetchLikedCommentIds(List<String> commentIds) {
+    try {
+      Long currentUserId = UserContextUtils.getCurrentUserId();
+      return likeRepository.findByUserIdAndCommentIdIn(currentUserId, commentIds).stream()
+          .map(Like::getCommentId)
+          .toList();
+    } catch (Exception ex) {
+      log.debug("Could not fetch batch likes: {}", ex.getMessage());
+      return List.of();
+    }
+  }
+
+  private void applyLikedStatus(List<CommentResponse> responses, List<String> likedCommentIds) {
+    responses.forEach(
+        response -> response.setAlreadyLiked(likedCommentIds.contains(response.getId())));
+  }
+
+  private List<CommentResponse> mapCommentsWithAlreadyLiked(List<Comment> comments) {
     if (comments.isEmpty()) {
       return List.of();
     }
 
-    List<String> commentIds = comments.stream().map(Comment::getId).toList();
-    List<String> likedCommentIds = List.of();
-    try {
-      Long currentUserId = UserContextUtils.getCurrentUserId();
-      likedCommentIds =
-          likeRepository.findByUserIdAndCommentIdIn(currentUserId, commentIds).stream()
-              .map(Like::getCommentId)
-              .toList();
-    } catch (Exception ex) {
-      log.debug("Could not fetch batch likes: {}", ex.getMessage());
-    }
+    List<CommentResponse> responses =
+        comments.stream().map(this::mapCommentToResponseWithUser).toList();
 
-    List<String> finalLikedCommentIds = likedCommentIds;
-    return comments.stream()
-        .map(
-            comment -> {
-              CommentResponse response = mapCommentToResponseWithUser(comment);
-              // Override the alreadyLiked with batch result
-              response.setAlreadyLiked(finalLikedCommentIds.contains(comment.getId()));
-              return response;
-            })
-        .toList();
+    List<String> commentIds = comments.stream().map(Comment::getId).toList();
+    List<String> likedCommentIds = fetchLikedCommentIds(commentIds);
+    applyLikedStatus(responses, likedCommentIds);
+
+    return responses;
   }
 
   @Override
@@ -253,50 +254,9 @@ public class CommentServiceImpl implements CommentService {
     }
 
     List<Comment> replies = commentRepository.findByParentCommentId(commentId);
-    List<CommentResponse> replyResponses =
-        replies.stream().map(this::mapCommentToResponseWithUser).toList();
+    List<CommentResponse> replyResponses = mapCommentsWithAlreadyLiked(replies);
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS, "Replies retrieved successfully", replyResponses);
-  }
-
-  private List<CommentResponse> mapCommentsToResponsesWithBatchLikesAndReplies(
-      List<Comment> comments) {
-    if (comments.isEmpty()) {
-      return List.of();
-    }
-
-    // Batch fetch likes for top-level comments
-    List<String> commentIds = comments.stream().map(Comment::getId).toList();
-    List<String> likedCommentIds = List.of();
-    try {
-      Long currentUserId = UserContextUtils.getCurrentUserId();
-      likedCommentIds =
-          likeRepository.findByUserIdAndCommentIdIn(currentUserId, commentIds).stream()
-              .map(Like::getCommentId)
-              .toList();
-    } catch (Exception ex) {
-      log.debug("Could not fetch batch likes: {}", ex.getMessage());
-    }
-
-    List<String> finalLikedCommentIds = likedCommentIds;
-    return comments.stream()
-        .map(
-            comment -> {
-              CommentResponse response = mapCommentToResponseWithUser(comment);
-              response.setAlreadyLiked(finalLikedCommentIds.contains(comment.getId()));
-
-              // Fetch first 3 replies as preview
-              List<Comment> replies = commentRepository.findByParentCommentId(comment.getId());
-              List<CommentResponse> replyResponses =
-                  replies.stream()
-                      .limit(3) // Show only first 3 replies as preview
-                      .map(this::mapCommentToResponseWithUser)
-                      .toList();
-              response.setReplies(replyResponses);
-
-              return response;
-            })
-        .toList();
   }
 }
