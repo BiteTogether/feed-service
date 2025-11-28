@@ -94,7 +94,8 @@ public class CommentServiceImpl implements CommentService {
       String postId, int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     // Fetch only top-level comments (parentCommentId is null)
-    Page<Comment> commentPage = commentRepository.findByPostIdAndParentCommentIdIsNull(postId, pageable);
+    Page<Comment> commentPage =
+        commentRepository.findByPostIdAndParentCommentIdIsNull(postId, pageable);
 
     List<CommentResponse> responses =
         mapCommentsToResponsesWithBatchLikesAndReplies(commentPage.getContent());
@@ -137,12 +138,13 @@ public class CommentServiceImpl implements CommentService {
 
     Long currentUserId = UserContextUtils.getCurrentUserId();
     if (!existing.getUserId().equals(currentUserId)) {
-      log.warn("User {} attempted to update comment {} owned by user {}",
-               currentUserId, id, existing.getUserId());
+      log.warn(
+          "User {} attempted to update comment {} owned by user {}",
+          currentUserId,
+          id,
+          existing.getUserId());
       return ApiResponseUtil.buildApiResponse(
-          ApiResponseStatus.FORBIDDEN,
-          "You are not authorized to update this comment",
-          null);
+          ApiResponseStatus.FORBIDDEN, "You are not authorized to update this comment", null);
     }
 
     commentMapper.updateCommentFromCommentRequest(request, existing);
@@ -164,12 +166,13 @@ public class CommentServiceImpl implements CommentService {
 
     Long currentUserId = UserContextUtils.getCurrentUserId();
     if (!existing.getUserId().equals(currentUserId)) {
-      log.warn("User {} attempted to delete comment {} owned by user {}",
-               currentUserId, id, existing.getUserId());
+      log.warn(
+          "User {} attempted to delete comment {} owned by user {}",
+          currentUserId,
+          id,
+          existing.getUserId());
       return ApiResponseUtil.buildApiResponse(
-          ApiResponseStatus.FORBIDDEN,
-          "You are not authorized to delete this comment",
-          null);
+          ApiResponseStatus.FORBIDDEN, "You are not authorized to delete this comment", null);
     }
 
     // Decrement post comment count for both top-level comments and replies
@@ -250,17 +253,15 @@ public class CommentServiceImpl implements CommentService {
     }
 
     List<Comment> replies = commentRepository.findByParentCommentId(commentId);
-    List<CommentResponse> replyResponses = replies.stream()
-        .map(this::mapCommentToResponseWithUser)
-        .toList();
+    List<CommentResponse> replyResponses =
+        replies.stream().map(this::mapCommentToResponseWithUser).toList();
 
     return ApiResponseUtil.buildApiResponse(
-        ApiResponseStatus.SUCCESS,
-        "Replies retrieved successfully",
-        replyResponses);
+        ApiResponseStatus.SUCCESS, "Replies retrieved successfully", replyResponses);
   }
 
-  private List<CommentResponse> mapCommentsToResponsesWithBatchLikesAndReplies(List<Comment> comments) {
+  private List<CommentResponse> mapCommentsToResponsesWithBatchLikesAndReplies(
+      List<Comment> comments) {
     if (comments.isEmpty()) {
       return List.of();
     }
@@ -287,10 +288,11 @@ public class CommentServiceImpl implements CommentService {
 
               // Fetch first 3 replies as preview
               List<Comment> replies = commentRepository.findByParentCommentId(comment.getId());
-              List<CommentResponse> replyResponses = replies.stream()
-                  .limit(3) // Show only first 3 replies as preview
-                  .map(this::mapCommentToResponseWithUser)
-                  .toList();
+              List<CommentResponse> replyResponses =
+                  replies.stream()
+                      .limit(3) // Show only first 3 replies as preview
+                      .map(this::mapCommentToResponseWithUser)
+                      .toList();
               response.setReplies(replyResponses);
 
               return response;

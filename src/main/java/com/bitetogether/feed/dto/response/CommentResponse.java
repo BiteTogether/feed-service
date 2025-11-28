@@ -26,7 +26,9 @@ public class CommentResponse extends BaseResponse {
   @Schema(description = "User who made the comment")
   private UserDTO user;
 
-  @Schema(description = "ID of the parent comment (null for top-level comments)", example = "68f5007b8082ca7e84af80e2")
+  @Schema(
+      description = "ID of the parent comment (null for top-level comments)",
+      example = "68f5007b8082ca7e84af80e2")
   private String parentCommentId;
 
   @Schema(description = "List of reply comments (nested)")

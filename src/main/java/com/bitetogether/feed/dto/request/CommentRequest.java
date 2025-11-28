@@ -11,6 +11,8 @@ public class CommentRequest {
   @Schema(description = "Content of the comment", example = "This is a great post!")
   private String content;
 
-  @Schema(description = "ID of the parent comment (null for top-level comments)", example = "68f5007b8082ca7e84af80e2")
+  @Schema(
+      description = "ID of the parent comment (null for top-level comments)",
+      example = "68f5007b8082ca7e84af80e2")
   private String parentCommentId;
 }

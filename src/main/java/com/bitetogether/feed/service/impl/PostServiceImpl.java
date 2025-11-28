@@ -130,12 +130,13 @@ public class PostServiceImpl implements PostService {
 
     Long currentUserId = UserContextUtils.getCurrentUserId();
     if (!post.getUserId().equals(currentUserId)) {
-      log.warn("User {} attempted to update post {} owned by user {}",
-               currentUserId, id, post.getUserId());
+      log.warn(
+          "User {} attempted to update post {} owned by user {}",
+          currentUserId,
+          id,
+          post.getUserId());
       return ApiResponseUtil.buildApiResponse(
-          ApiResponseStatus.FORBIDDEN,
-          "You are not authorized to update this post",
-          null);
+          ApiResponseStatus.FORBIDDEN, "You are not authorized to update this post", null);
     }
 
     postMapper.updatePostFromPostRequest(postRequest, post);
@@ -156,12 +157,13 @@ public class PostServiceImpl implements PostService {
 
     Long currentUserId = UserContextUtils.getCurrentUserId();
     if (!post.getUserId().equals(currentUserId)) {
-      log.warn("User {} attempted to delete post {} owned by user {}",
-               currentUserId, id, post.getUserId());
+      log.warn(
+          "User {} attempted to delete post {} owned by user {}",
+          currentUserId,
+          id,
+          post.getUserId());
       return ApiResponseUtil.buildApiResponse(
-          ApiResponseStatus.FORBIDDEN,
-          "You are not authorized to delete this post",
-          null);
+          ApiResponseStatus.FORBIDDEN, "You are not authorized to delete this post", null);
     }
 
     postRepository.delete(post);
