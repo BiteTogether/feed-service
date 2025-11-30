@@ -10,6 +10,7 @@ import com.bitetogether.feed.service.inter.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -64,6 +65,17 @@ public class CommentController {
       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
     ApiResponsePagination<CommentResponse> response =
         commentService.getCommentsByUserId(userId, page, size);
+    return ResponseEntity.ok(response);
+  }
+
+  @Operation(
+      summary = "Get Replies by Comment",
+      description =
+          "Retrieve direct replies for a specific comment. Returns flat list of replies with user info and like status.")
+  @GetMapping("/{commentId}/replies")
+  public ResponseEntity<ApiResponse<List<CommentResponse>>> getRepliesByComment(
+      @PathVariable String commentId) {
+    ApiResponse<List<CommentResponse>> response = commentService.getRepliesByCommentId(commentId);
     return ResponseEntity.ok(response);
   }
 

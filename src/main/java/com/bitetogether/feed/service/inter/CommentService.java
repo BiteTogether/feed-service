@@ -4,6 +4,7 @@ import com.bitetogether.common.dto.ApiResponse;
 import com.bitetogether.common.dto.ApiResponsePagination;
 import com.bitetogether.feed.dto.request.CommentRequest;
 import com.bitetogether.feed.dto.response.CommentResponse;
+import java.util.List;
 
 public interface CommentService {
   ApiResponse<CommentResponse> createComment(CommentRequest request);
@@ -13,6 +14,8 @@ public interface CommentService {
   ApiResponsePagination<CommentResponse> getCommentsByPostId(String postId, int page, int size);
 
   ApiResponsePagination<CommentResponse> getCommentsByUserId(Long userId, int page, int size);
+
+  ApiResponse<List<CommentResponse>> getRepliesByCommentId(String commentId);
 
   ApiResponse<CommentResponse> updateComment(String commentId, CommentRequest request);
 

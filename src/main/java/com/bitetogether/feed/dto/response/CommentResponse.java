@@ -20,9 +20,17 @@ public class CommentResponse extends BaseResponse {
   @Schema(description = "Number of likes on the comment", example = "42")
   private Integer likeCount;
 
+  @Schema(description = "Number of direct replies to this comment", example = "5")
+  private Integer repliesCount;
+
   @Schema(description = "Whether the current user has already liked this comment", example = "true")
   private boolean alreadyLiked;
 
   @Schema(description = "User who made the comment")
   private UserDTO user;
+
+  @Schema(
+      description = "ID of the parent comment (null for top-level comments)",
+      example = "68f5007b8082ca7e84af80e2")
+  private String parentCommentId;
 }

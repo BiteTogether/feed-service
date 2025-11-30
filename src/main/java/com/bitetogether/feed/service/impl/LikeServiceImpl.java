@@ -47,12 +47,14 @@ public class LikeServiceImpl implements LikeService {
         request.getPostId(),
         request.getCommentId());
 
-    if (request.getPostId() == null)
+    if (request.getPostId() == null && request.getCommentId() == null)
       return ApiResponseUtil.buildApiResponse(
           ApiResponseStatus.BAD_REQUEST, "postId is required", null);
 
     boolean isComment = isCommentTarget(request);
-
+    if (isComment) {
+      request.setPostId(null);
+    }
     if (alreadyLiked(request, isComment, currentUserId))
       return ApiResponseUtil.buildApiResponse(ApiResponseStatus.CONFLICT, "Already liked", null);
 
@@ -75,7 +77,7 @@ public class LikeServiceImpl implements LikeService {
         request.getPostId(),
         request.getCommentId());
 
-    if (request.getPostId() == null)
+    if (request.getPostId() == null && request.getCommentId() == null)
       return ApiResponseUtil.buildApiResponse(
           ApiResponseStatus.BAD_REQUEST, "postId is required", null);
 

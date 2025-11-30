@@ -127,6 +127,18 @@ public class PostServiceImpl implements PostService {
         postRepository
             .findById(id)
             .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
+
+    Long currentUserId = UserContextUtils.getCurrentUserId();
+    if (!post.getUserId().equals(currentUserId)) {
+      log.warn(
+          "User {} attempted to update post {} owned by user {}",
+          currentUserId,
+          id,
+          post.getUserId());
+      return ApiResponseUtil.buildApiResponse(
+          ApiResponseStatus.FORBIDDEN, "You are not authorized to update this post", null);
+    }
+
     postMapper.updatePostFromPostRequest(postRequest, post);
     postRepository.save(post);
     return ApiResponseUtil.buildApiResponse(
@@ -142,6 +154,18 @@ public class PostServiceImpl implements PostService {
         postRepository
             .findById(id)
             .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
+
+    Long currentUserId = UserContextUtils.getCurrentUserId();
+    if (!post.getUserId().equals(currentUserId)) {
+      log.warn(
+          "User {} attempted to delete post {} owned by user {}",
+          currentUserId,
+          id,
+          post.getUserId());
+      return ApiResponseUtil.buildApiResponse(
+          ApiResponseStatus.FORBIDDEN, "You are not authorized to delete this post", null);
+    }
+
     postRepository.delete(post);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
