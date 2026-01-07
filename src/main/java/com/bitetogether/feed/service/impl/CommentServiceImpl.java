@@ -1,7 +1,7 @@
 package com.bitetogether.feed.service.impl;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
 import com.bitetogether.common.util.UserContextUtils;
@@ -41,7 +41,7 @@ public class CommentServiceImpl implements CommentService {
 
   @Override
   @Transactional
-  public ApiResponse<CommentResponse> createComment(CommentRequest request) {
+  public ApiResponseDTO<CommentResponse> createComment(CommentRequest request) {
     Long currentUserId = UserContextUtils.getCurrentUserId();
     log.info("Creating comment for postId={} by userId={}", request.getPostId(), currentUserId);
 
@@ -77,7 +77,7 @@ public class CommentServiceImpl implements CommentService {
 
   @Override
   @Transactional(readOnly = true)
-  public ApiResponse<CommentResponse> getCommentById(String id) {
+  public ApiResponseDTO<CommentResponse> getCommentById(String id) {
     Comment comment = commentRepository.findById(id).orElse(null);
     if (comment == null)
       return ApiResponseUtil.buildApiResponse(
@@ -92,7 +92,7 @@ public class CommentServiceImpl implements CommentService {
 
   @Override
   @Transactional(readOnly = true)
-  public ApiResponsePagination<CommentResponse> getCommentsByPostId(
+  public ApiResponsePaginationDTO<CommentResponse> getCommentsByPostId(
       String postId, int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     // Fetch only top-level comments (parentCommentId is null)
@@ -112,7 +112,7 @@ public class CommentServiceImpl implements CommentService {
 
   @Override
   @Transactional(readOnly = true)
-  public ApiResponsePagination<CommentResponse> getCommentsByUserId(
+  public ApiResponsePaginationDTO<CommentResponse> getCommentsByUserId(
       Long userId, int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     Page<Comment> commentPage = commentRepository.findByUserId(userId, pageable);
@@ -130,7 +130,7 @@ public class CommentServiceImpl implements CommentService {
 
   @Override
   @Transactional
-  public ApiResponse<CommentResponse> updateComment(String id, CommentRequest request) {
+  public ApiResponseDTO<CommentResponse> updateComment(String id, CommentRequest request) {
     Comment existing = commentRepository.findById(id).orElse(null);
     if (existing == null)
       return ApiResponseUtil.buildApiResponse(
@@ -160,7 +160,7 @@ public class CommentServiceImpl implements CommentService {
 
   @Override
   @Transactional
-  public ApiResponse<String> deleteComment(String id) {
+  public ApiResponseDTO<String> deleteComment(String id) {
     Comment existing = commentRepository.findById(id).orElse(null);
     if (existing == null)
       return ApiResponseUtil.buildApiResponse(
@@ -201,7 +201,7 @@ public class CommentServiceImpl implements CommentService {
   private CommentResponse mapCommentToResponseWithUser(Comment comment) {
     UserDTO userDTO = null;
     try {
-      ResponseEntity<ApiResponse<UserDTO>> userResponse =
+      ResponseEntity<ApiResponseDTO<UserDTO>> userResponse =
           userClient.getUserById(comment.getUserId());
       userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
     } catch (Exception ex) {
@@ -246,7 +246,7 @@ public class CommentServiceImpl implements CommentService {
 
   @Override
   @Transactional(readOnly = true)
-  public ApiResponse<List<CommentResponse>> getRepliesByCommentId(String commentId) {
+  public ApiResponseDTO<List<CommentResponse>> getRepliesByCommentId(String commentId) {
     Comment parentComment = commentRepository.findById(commentId).orElse(null);
     if (parentComment == null) {
       return ApiResponseUtil.buildApiResponse(

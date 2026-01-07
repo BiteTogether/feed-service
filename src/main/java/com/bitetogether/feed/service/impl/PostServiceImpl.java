@@ -1,7 +1,7 @@
 package com.bitetogether.feed.service.impl;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
 import com.bitetogether.common.util.UserContextUtils;
@@ -43,7 +43,7 @@ public class PostServiceImpl implements PostService {
 
   @Override
   @Transactional
-  public ApiResponse<PostResponse> createPost(PostRequest postRequest) {
+  public ApiResponseDTO<PostResponse> createPost(PostRequest postRequest) {
     Long currentUserId = UserContextUtils.getCurrentUserId();
 
     log.info("Creating feed with request: {}", postRequest);
@@ -58,7 +58,7 @@ public class PostServiceImpl implements PostService {
 
   @Override
   @Transactional
-  public ApiResponse<PostResponse> getPostById(String id) {
+  public ApiResponseDTO<PostResponse> getPostById(String id) {
     Post post =
         postRepository
             .findById(id)
@@ -71,7 +71,7 @@ public class PostServiceImpl implements PostService {
 
   @Override
   @Transactional
-  public ApiResponsePagination<PostResponse> getPostsByUserId(Long userId, int page, int size) {
+  public ApiResponsePaginationDTO<PostResponse> getPostsByUserId(Long userId, int page, int size) {
     log.info(
         "Getting posts for user ID: {} with pagination - page: {}, size: {}", userId, page, size);
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -122,7 +122,7 @@ public class PostServiceImpl implements PostService {
 
   @Override
   @Transactional
-  public ApiResponse<PostResponse> updatePost(String id, PostRequest postRequest) {
+  public ApiResponseDTO<PostResponse> updatePost(String id, PostRequest postRequest) {
     Post post =
         postRepository
             .findById(id)
@@ -149,7 +149,7 @@ public class PostServiceImpl implements PostService {
 
   @Override
   @Transactional
-  public ApiResponse<String> deletePost(String id) {
+  public ApiResponseDTO<String> deletePost(String id) {
     Post post =
         postRepository
             .findById(id)
@@ -175,13 +175,13 @@ public class PostServiceImpl implements PostService {
 
   @Override
   @Transactional
-  public ApiResponsePagination<PostResponse> getNewFeed(int page, int size) {
+  public ApiResponsePaginationDTO<PostResponse> getNewFeed(int page, int size) {
     log.info("Fetching new feed with pagination - page: {}, size: {}", page, size);
     Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
 
     List<FriendDTO> friends;
     try {
-      ResponseEntity<ApiResponsePagination<FriendDTO>> friendResponse =
+      ResponseEntity<ApiResponsePaginationDTO<FriendDTO>> friendResponse =
           userClient.getFriendList(0, 100);
       friends = friendResponse.getBody() != null ? friendResponse.getBody().getData() : List.of();
     } catch (Exception ex) {
@@ -210,7 +210,7 @@ public class PostServiceImpl implements PostService {
     log.info("Mapping post to response, post: {}", post);
     UserDTO userDTO = null;
     try {
-      ResponseEntity<ApiResponse<UserDTO>> userResponse = userClient.getUserById(post.getUserId());
+      ResponseEntity<ApiResponseDTO<UserDTO>> userResponse = userClient.getUserById(post.getUserId());
       userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
     } catch (Exception ex) {
       log.error("Failed to fetch userDTO for userId {}: {}", post.getUserId(), ex.getMessage(), ex);

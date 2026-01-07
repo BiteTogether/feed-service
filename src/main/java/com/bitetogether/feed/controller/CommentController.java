@@ -2,8 +2,8 @@ package com.bitetogether.feed.controller;
 
 import static com.bitetogether.common.util.Constants.*;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.feed.dto.request.CommentRequest;
 import com.bitetogether.feed.dto.response.CommentResponse;
 import com.bitetogether.feed.service.inter.CommentService;
@@ -28,17 +28,17 @@ public class CommentController {
 
   @Operation(summary = "Create Comment", description = "Create a new comment for a post.")
   @PostMapping
-  public ResponseEntity<ApiResponse<CommentResponse>> createComment(
+  public ResponseEntity<ApiResponseDTO<CommentResponse>> createComment(
       @Valid @RequestBody CommentRequest request) {
-    ApiResponse<CommentResponse> response = commentService.createComment(request);
+    ApiResponseDTO<CommentResponse> response = commentService.createComment(request);
     return ResponseEntity.ok(response);
   }
 
   @Operation(summary = "Get Comment by ID", description = "Retrieve a single comment by its ID.")
   @GetMapping("/{commentId}")
-  public ResponseEntity<ApiResponse<CommentResponse>> getCommentById(
+  public ResponseEntity<ApiResponseDTO<CommentResponse>> getCommentById(
       @PathVariable String commentId) {
-    ApiResponse<CommentResponse> response = commentService.getCommentById(commentId);
+    ApiResponseDTO<CommentResponse> response = commentService.getCommentById(commentId);
     return ResponseEntity.ok(response);
   }
 
@@ -46,11 +46,11 @@ public class CommentController {
       summary = "Get Comments by Post",
       description = "Retrieve all comments for a specific post.")
   @GetMapping("/post/{postId}")
-  public ResponseEntity<ApiResponsePagination<CommentResponse>> getCommentsByPost(
+  public ResponseEntity<ApiResponsePaginationDTO<CommentResponse>> getCommentsByPost(
       @PathVariable String postId,
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
-    ApiResponsePagination<CommentResponse> response =
+    ApiResponsePaginationDTO<CommentResponse> response =
         commentService.getCommentsByPostId(postId, page, size);
     return ResponseEntity.ok(response);
   }
@@ -59,11 +59,11 @@ public class CommentController {
       summary = "Get Comments by User",
       description = "Retrieve all comments created by a user.")
   @GetMapping("/user/{userId}")
-  public ResponseEntity<ApiResponsePagination<CommentResponse>> getCommentsByUser(
+  public ResponseEntity<ApiResponsePaginationDTO<CommentResponse>> getCommentsByUser(
       @PathVariable Long userId,
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
-    ApiResponsePagination<CommentResponse> response =
+    ApiResponsePaginationDTO<CommentResponse> response =
         commentService.getCommentsByUserId(userId, page, size);
     return ResponseEntity.ok(response);
   }
@@ -73,24 +73,24 @@ public class CommentController {
       description =
           "Retrieve direct replies for a specific comment. Returns flat list of replies with user info and like status.")
   @GetMapping("/{commentId}/replies")
-  public ResponseEntity<ApiResponse<List<CommentResponse>>> getRepliesByComment(
+  public ResponseEntity<ApiResponseDTO<List<CommentResponse>>> getRepliesByComment(
       @PathVariable String commentId) {
-    ApiResponse<List<CommentResponse>> response = commentService.getRepliesByCommentId(commentId);
+    ApiResponseDTO<List<CommentResponse>> response = commentService.getRepliesByCommentId(commentId);
     return ResponseEntity.ok(response);
   }
 
   @Operation(summary = "Update Comment", description = "Update the content of an existing comment.")
   @PutMapping("/{commentId}")
-  public ResponseEntity<ApiResponse<CommentResponse>> updateComment(
+  public ResponseEntity<ApiResponseDTO<CommentResponse>> updateComment(
       @PathVariable String commentId, @Valid @RequestBody CommentRequest request) {
-    ApiResponse<CommentResponse> response = commentService.updateComment(commentId, request);
+    ApiResponseDTO<CommentResponse> response = commentService.updateComment(commentId, request);
     return ResponseEntity.ok(response);
   }
 
   @Operation(summary = "Delete Comment", description = "Delete a comment by its ID.")
   @DeleteMapping("/{commentId}")
-  public ResponseEntity<ApiResponse<String>> deleteComment(@PathVariable String commentId) {
-    ApiResponse<String> response = commentService.deleteComment(commentId);
+  public ResponseEntity<ApiResponseDTO<String>> deleteComment(@PathVariable String commentId) {
+    ApiResponseDTO<String> response = commentService.deleteComment(commentId);
     return ResponseEntity.ok(response);
   }
 }

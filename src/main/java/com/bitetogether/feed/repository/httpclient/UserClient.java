@@ -1,7 +1,7 @@
 package com.bitetogether.feed.repository.httpclient;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.util.Constants;
 import com.bitetogether.feed.configuration.openfeign.FeignClientConfig;
 import com.bitetogether.feed.dto.FriendDTO;
@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.RequestParam;
     configuration = FeignClientConfig.class)
 public interface UserClient {
   @GetMapping(Constants.PREFIX_REQUEST_MAPPING_USER + "/{id}")
-  ResponseEntity<ApiResponse<UserDTO>> getUserById(@PathVariable Long id);
+  ResponseEntity<ApiResponseDTO<UserDTO>> getUserById(@PathVariable Long id);
 
   @GetMapping(Constants.PREFIX_REQUEST_MAPPING_FRIEND)
-  ResponseEntity<ApiResponsePagination<FriendDTO>> getFriendList(
+  ResponseEntity<ApiResponsePaginationDTO<FriendDTO>> getFriendList(
       @RequestParam("page") int page, @RequestParam("size") int size);
 }
