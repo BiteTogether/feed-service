@@ -1,7 +1,7 @@
 package com.bitetogether.feed.service.impl;
 
-import com.bitetogether.common.dto.ApiResponse;
-import com.bitetogether.common.dto.ApiResponsePagination;
+import com.bitetogether.common.dto.ApiResponseDTO;
+import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
 import com.bitetogether.common.util.UserContextUtils;
@@ -38,7 +38,7 @@ public class LikeServiceImpl implements LikeService {
 
   @Override
   @Transactional
-  public ApiResponse<LikeResponse> like(LikeRequest request) {
+  public ApiResponseDTO<LikeResponse> like(LikeRequest request) {
     Long currentUserId = UserContextUtils.getCurrentUserId();
 
     log.info(
@@ -69,7 +69,7 @@ public class LikeServiceImpl implements LikeService {
 
   @Override
   @Transactional
-  public ApiResponse<String> unlike(LikeRequest request) {
+  public ApiResponseDTO<String> unlike(LikeRequest request) {
     Long currentUserId = UserContextUtils.getCurrentUserId();
     log.info(
         "User {} unliking postId={}, commentId={}",
@@ -96,7 +96,7 @@ public class LikeServiceImpl implements LikeService {
 
   @Override
   @Transactional(readOnly = true)
-  public ApiResponsePagination<LikeResponse> getLikesByUser(Long userId, int page, int size) {
+  public ApiResponsePaginationDTO<LikeResponse> getLikesByUser(Long userId, int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     Page<Like> likePage = likeRepository.findByUserId(userId, pageable);
     Page<LikeResponse> responsePage = likePage.map(this::mapLikeToLikeResponseWithUser);
@@ -111,7 +111,7 @@ public class LikeServiceImpl implements LikeService {
 
   @Override
   @Transactional(readOnly = true)
-  public ApiResponsePagination<LikeResponse> getLikesByPost(String postId, int page, int size) {
+  public ApiResponsePaginationDTO<LikeResponse> getLikesByPost(String postId, int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     Page<Like> likePage = likeRepository.findByPostId(postId, pageable);
     Page<LikeResponse> responsePage = likePage.map(this::mapLikeToLikeResponseWithUser);
@@ -126,7 +126,7 @@ public class LikeServiceImpl implements LikeService {
 
   @Override
   @Transactional(readOnly = true)
-  public ApiResponsePagination<LikeResponse> getLikesByComment(
+  public ApiResponsePaginationDTO<LikeResponse> getLikesByComment(
       String commentId, int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     Page<Like> likePage = likeRepository.findByCommentId(commentId, pageable);
@@ -144,7 +144,7 @@ public class LikeServiceImpl implements LikeService {
     log.info("Mapping like to response, like: {}", like);
     UserDTO userDTO = null;
     try {
-      ResponseEntity<ApiResponse<UserDTO>> userResponse = userClient.getUserById(like.getUserId());
+      ResponseEntity<ApiResponseDTO<UserDTO>> userResponse = userClient.getUserById(like.getUserId());
       userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
     } catch (Exception ex) {
       log.error("Failed to fetch userDTO for userId {}: {}", like.getUserId(), ex.getMessage(), ex);
