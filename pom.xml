@@ -32,8 +32,9 @@
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <spotless.version>2.46.1</spotless.version>
-        <common-service.version>0.0.4-SNAPSHOT</common-service.version>
+        <common-service.version>0.0.6-SNAPSHOT</common-service.version>
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+        <sonar-maven-plugin.version>3.10.0.2594</sonar-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -148,6 +149,12 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>${sonar-maven-plugin.version}</version>
             </plugin>
 
             <plugin>
