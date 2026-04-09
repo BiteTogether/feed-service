@@ -12,7 +12,7 @@ It is a Spring Boot microservice using MongoDB, OpenFeign (for user/friend data)
 - Comment creation (including replies), update, delete, and retrieval
 - Like/unlike for posts and comments
 - Aggregated counters on posts/comments (`likeCount`, `commentCount`, `repliesCount`)
-- New feed retrieval based on friend list + recent time window
+- New feed retrieval based on friend list + recent time window + current map viewport
 
 ### Business behavior implemented
 
@@ -24,7 +24,8 @@ It is a Spring Boot microservice using MongoDB, OpenFeign (for user/friend data)
   - Like/unlike updates `Post.likeCount` or `Comment.likeCount`.
 - **New feeds logic**:
   - Calls user-service friend endpoint.
-  - Fetches posts from friends within the last 2 days.
+  - Computes viewport bounds from `latitude`, `longitude`, `latitudeDelta`, `longitudeDelta`.
+  - Fetches posts from friends within the current map viewport and within the last 1 year.
   - Returns newest first.
 - **User context usage**:
   - Current user is resolved via shared `UserContextUtils` (JWT claims or forwarded headers such as `X-User-Id`).
@@ -98,7 +99,7 @@ Controllers return common wrapper types:
 | `POST` | `/api/v1/feeds` | Create a post | `PostRequest` |
 | `GET` | `/api/v1/feeds/{id}` | Get post by id | - |
 | `GET` | `/api/v1/feeds/user/{userId}` | Get posts by user (paged) | - |
-| `GET` | `/api/v1/feeds/new-feeds` | Get latest friend feed (paged) | - |
+| `GET` | `/api/v1/feeds/new-feeds` | Get latest friend feed from current map viewport (paged) | - |
 | `PUT` | `/api/v1/feeds/{id}` | Update post (owner only) | `PostRequest` |
 | `DELETE` | `/api/v1/feeds/{id}` | Delete post (owner only) | - |
 | `GET` | `/api/v1/feeds/test` | Health/test endpoint | - |
@@ -108,12 +109,22 @@ Controllers return common wrapper types:
 - `content` (String)
 - `rating` (Integer)
 - `photoUrl` (String)
+- `latitude` (Double)
+- `longitude` (Double)
 
 `PostResponse` key fields:
-- `id`, `placeId`, `content`, `rating`, `photoUrl`
+- `id`, `placeId`, `content`, `rating`, `photoUrl`, `latitude`, `longitude`
 - `likeCount`, `commentCount`, `alreadyLiked`
 - `user` (`UserDTO`)
 - audit fields from `BaseResponse` (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`)
+
+`GET /api/v1/feeds/new-feeds` query params:
+- `page` (Integer, default `0`)
+- `size` (Integer, default `10`)
+- `latitude` (Double, required)
+- `longitude` (Double, required)
+- `latitudeDelta` (Double, required)
+- `longitudeDelta` (Double, required)
 
 ### Comment APIs
 
