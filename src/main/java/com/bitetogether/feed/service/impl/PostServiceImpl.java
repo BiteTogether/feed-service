@@ -175,9 +175,22 @@ public class PostServiceImpl implements PostService {
 
   @Override
   @Transactional
-  public ApiResponsePaginationDTO<PostResponse> getNewFeed(int page, int size) {
-    log.info("Fetching new feed with pagination - page: {}, size: {}", page, size);
-    Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+  public ApiResponsePaginationDTO<PostResponse> getNewFeed(
+      int page,
+      int size,
+      double latitude,
+      double longitude,
+      double latitudeDelta,
+      double longitudeDelta) {
+    log.info(
+        "Fetching map-based feed page={}, size={}, latitude={}, longitude={}, latitudeDelta={}, longitudeDelta={}",
+        page,
+        size,
+        latitude,
+        longitude,
+        latitudeDelta,
+        longitudeDelta);
+    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
     List<FriendDTO> friends;
     try {
@@ -190,9 +203,22 @@ public class PostServiceImpl implements PostService {
     }
     List<Long> friendIds = extractUserIds(friends);
 
+    double halfLatitudeDelta = Math.abs(latitudeDelta) / 2.0;
+    double halfLongitudeDelta = Math.abs(longitudeDelta) / 2.0;
+    double minLatitude = Math.max(-90.0, latitude - halfLatitudeDelta);
+    double maxLatitude = Math.min(90.0, latitude + halfLatitudeDelta);
+    double minLongitude = Math.max(-180.0, longitude - halfLongitudeDelta);
+    double maxLongitude = Math.min(180.0, longitude + halfLongitudeDelta);
+
     Page<Post> feedPage =
-        postRepository.findByUserIdInAndCreatedAtAfter(
-            friendIds, Instant.now().minus(2, ChronoUnit.DAYS), pageable);
+        postRepository.findByUserIdInAndCreatedAtAfterAndLatitudeBetweenAndLongitudeBetween(
+            friendIds,
+            Instant.now().minus(1, ChronoUnit.YEARS),
+            minLatitude,
+            maxLatitude,
+            minLongitude,
+            maxLongitude,
+            pageable);
 
     // Use batch optimization for alreadyLiked
     List<PostResponse> responses = mapPostsToResponsesWithBatchLikes(feedPage.getContent());

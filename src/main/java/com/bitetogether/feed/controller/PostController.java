@@ -52,12 +52,17 @@ public class PostController {
     return ResponseEntity.ok(response);
   }
 
-  @Operation(summary = "Get New Feeds", description = "Retrieve the latest posts for the new feed.")
+  @Operation(summary = "Get New Feeds", description = "Retrieve posts from the current map viewport.")
   @GetMapping("/new-feeds")
   public ResponseEntity<ApiResponsePaginationDTO<PostResponse>> getNewFeeds(
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
-      @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
-    ApiResponsePaginationDTO<PostResponse> response = postService.getNewFeed(page, size);
+      @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size,
+      @RequestParam double latitude,
+      @RequestParam double longitude,
+      @RequestParam double latitudeDelta,
+      @RequestParam double longitudeDelta) {
+    ApiResponsePaginationDTO<PostResponse> response =
+        postService.getNewFeed(page, size, latitude, longitude, latitudeDelta, longitudeDelta);
     return ResponseEntity.ok(response);
   }
 
