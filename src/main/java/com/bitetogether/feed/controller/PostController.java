@@ -1,19 +1,34 @@
 package com.bitetogether.feed.controller;
 
-import static com.bitetogether.common.util.Constants.*;
+import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_NUMBER;
+import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_SIZE;
+import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FEED;
 
 import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.feed.dto.request.PostRequest;
 import com.bitetogether.feed.dto.response.PostResponse;
+import com.bitetogether.feed.service.inter.FirebaseStorageService;
 import com.bitetogether.feed.service.inter.PostService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @Tag(name = "Post Service", description = "APIs for managing posts")
@@ -22,6 +37,7 @@ import org.springframework.web.bind.annotation.*;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PostController {
   PostService postService;
+  FirebaseStorageService firebaseStorageService;
 
   @Operation(
       summary = "Create Post",
@@ -48,11 +64,14 @@ public class PostController {
       @PathVariable Long userId,
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
-    ApiResponsePaginationDTO<PostResponse> response = postService.getPostsByUserId(userId, page, size);
+    ApiResponsePaginationDTO<PostResponse> response =
+        postService.getPostsByUserId(userId, page, size);
     return ResponseEntity.ok(response);
   }
 
-  @Operation(summary = "Get New Feeds", description = "Retrieve posts from the current map viewport.")
+  @Operation(
+      summary = "Get New Feeds",
+      description = "Retrieve posts from the current map viewport.")
   @GetMapping("/new-feeds")
   public ResponseEntity<ApiResponsePaginationDTO<PostResponse>> getNewFeeds(
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
@@ -80,6 +99,25 @@ public class PostController {
   @DeleteMapping("/{id}")
   public ResponseEntity<ApiResponseDTO<String>> deletePost(@PathVariable String id) {
     ApiResponseDTO<String> response = postService.deletePost(id);
+    return ResponseEntity.ok(response);
+  }
+
+  @Operation(
+      summary = "Upload Image",
+      description =
+          "Upload an image file to Firebase Storage and get the public URL. Maximum file size is 10MB. Supported formats: JPEG, PNG, GIF, WEBP.")
+  @PostMapping(value = "/upload-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<ApiResponseDTO<String>> uploadImage(
+      @RequestParam("file")
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              description = "Image file to upload",
+              required = true,
+              content =
+                  @Content(
+                      mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                      schema = @Schema(type = "string", format = "binary")))
+          MultipartFile file) {
+    ApiResponseDTO<String> response = firebaseStorageService.uploadFile(file);
     return ResponseEntity.ok(response);
   }
 

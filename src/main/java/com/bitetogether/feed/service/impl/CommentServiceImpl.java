@@ -22,7 +22,10 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +41,8 @@ public class CommentServiceImpl implements CommentService {
   CommentMapper commentMapper;
   UserClient userClient;
   LikeRepository likeRepository;
+
+  private static final String COMMENT_NOT_FOUND = "Comment not found";
 
   @Override
   @Transactional
@@ -80,11 +85,10 @@ public class CommentServiceImpl implements CommentService {
   public ApiResponseDTO<CommentResponse> getCommentById(String id) {
     Comment comment = commentRepository.findById(id).orElse(null);
     if (comment == null)
-      return ApiResponseUtil.buildApiResponse(
-          ApiResponseStatus.NOT_FOUND, "Comment not found", null);
+      return ApiResponseUtil.buildApiResponse(ApiResponseStatus.NOT_FOUND, COMMENT_NOT_FOUND, null);
 
     List<CommentResponse> responses = mapCommentsWithAlreadyLiked(List.of(comment));
-    CommentResponse response = responses.isEmpty() ? null : responses.get(0);
+    CommentResponse response = responses.isEmpty() ? null : responses.getFirst();
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS, "Comment retrieved successfully", response);
@@ -133,8 +137,7 @@ public class CommentServiceImpl implements CommentService {
   public ApiResponseDTO<CommentResponse> updateComment(String id, CommentRequest request) {
     Comment existing = commentRepository.findById(id).orElse(null);
     if (existing == null)
-      return ApiResponseUtil.buildApiResponse(
-          ApiResponseStatus.NOT_FOUND, "Comment not found", null);
+      return ApiResponseUtil.buildApiResponse(ApiResponseStatus.NOT_FOUND, COMMENT_NOT_FOUND, null);
 
     Long currentUserId = UserContextUtils.getCurrentUserId();
     if (!existing.getUserId().equals(currentUserId)) {
@@ -152,7 +155,7 @@ public class CommentServiceImpl implements CommentService {
 
     // Map comment with likes and replies
     List<CommentResponse> responses = mapCommentsWithAlreadyLiked(List.of(updated));
-    CommentResponse response = responses.isEmpty() ? null : responses.get(0);
+    CommentResponse response = responses.isEmpty() ? null : responses.getFirst();
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS, "Comment updated successfully", response);
@@ -163,8 +166,7 @@ public class CommentServiceImpl implements CommentService {
   public ApiResponseDTO<String> deleteComment(String id) {
     Comment existing = commentRepository.findById(id).orElse(null);
     if (existing == null)
-      return ApiResponseUtil.buildApiResponse(
-          ApiResponseStatus.NOT_FOUND, "Comment not found", null);
+      return ApiResponseUtil.buildApiResponse(ApiResponseStatus.NOT_FOUND, COMMENT_NOT_FOUND, null);
 
     Long currentUserId = UserContextUtils.getCurrentUserId();
     if (!existing.getUserId().equals(currentUserId)) {
@@ -249,8 +251,7 @@ public class CommentServiceImpl implements CommentService {
   public ApiResponseDTO<List<CommentResponse>> getRepliesByCommentId(String commentId) {
     Comment parentComment = commentRepository.findById(commentId).orElse(null);
     if (parentComment == null) {
-      return ApiResponseUtil.buildApiResponse(
-          ApiResponseStatus.NOT_FOUND, "Comment not found", null);
+      return ApiResponseUtil.buildApiResponse(ApiResponseStatus.NOT_FOUND, COMMENT_NOT_FOUND, null);
     }
 
     List<Comment> replies = commentRepository.findByParentCommentId(commentId);
