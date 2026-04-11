@@ -15,6 +15,7 @@ import com.bitetogether.feed.model.Post;
 import com.bitetogether.feed.repository.LikeRepository;
 import com.bitetogether.feed.repository.PostRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
+import com.bitetogether.feed.service.inter.FirebaseStorageService;
 import com.bitetogether.feed.service.inter.PostService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -23,6 +24,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +42,7 @@ public class PostServiceImpl implements PostService {
   PostMapper postMapper;
   UserClient userClient;
   LikeRepository likeRepository;
+  FirebaseStorageService firebaseStorageService;
 
   @Override
   @Transactional
@@ -139,6 +142,16 @@ public class PostServiceImpl implements PostService {
           ApiResponseStatus.FORBIDDEN, "You are not authorized to update this post", null);
     }
 
+    // Delete old image if photoUrl is being changed and old one exists
+    String oldPhotoUrl = post.getPhotoUrl();
+    String newPhotoUrl = postRequest.getPhotoUrl();
+    if (StringUtils.isEmpty(oldPhotoUrl)
+        && StringUtils.isEmpty(newPhotoUrl)
+        && !oldPhotoUrl.equals(newPhotoUrl)) {
+      log.info("Deleting old image from post {}: {}", id, oldPhotoUrl);
+      firebaseStorageService.deleteFile(oldPhotoUrl);
+    }
+
     postMapper.updatePostFromPostRequest(postRequest, post);
     postRepository.save(post);
     return ApiResponseUtil.buildApiResponse(
@@ -164,6 +177,12 @@ public class PostServiceImpl implements PostService {
           post.getUserId());
       return ApiResponseUtil.buildApiResponse(
           ApiResponseStatus.FORBIDDEN, "You are not authorized to delete this post", null);
+    }
+
+    // Delete image from Firebase Storage if exists
+    if (post.getPhotoUrl() != null && !post.getPhotoUrl().isEmpty()) {
+      log.info("Deleting image from post {}: {}", id, post.getPhotoUrl());
+      firebaseStorageService.deleteFile(post.getPhotoUrl());
     }
 
     postRepository.delete(post);
@@ -236,7 +255,8 @@ public class PostServiceImpl implements PostService {
     log.info("Mapping post to response, post: {}", post);
     UserDTO userDTO = null;
     try {
-      ResponseEntity<ApiResponseDTO<UserDTO>> userResponse = userClient.getUserById(post.getUserId());
+      ResponseEntity<ApiResponseDTO<UserDTO>> userResponse =
+          userClient.getUserById(post.getUserId());
       userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
     } catch (Exception ex) {
       log.error("Failed to fetch userDTO for userId {}: {}", post.getUserId(), ex.getMessage(), ex);

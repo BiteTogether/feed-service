@@ -35,3 +35,6 @@ build/
 
 ### Environment Files ###
 .env
+
+### Firebase Sensitive Files ###
+src/main/resources/config/firebase-service-account.json
