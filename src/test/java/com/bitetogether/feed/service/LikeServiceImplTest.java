@@ -69,7 +69,9 @@ class LikeServiceImplTest {
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(1L);
-      Mockito.when(likeRepository.findByUserIdAndPostId(Mockito.eq(1L), Mockito.eq("p1"), Mockito.any(Pageable.class)))
+      Mockito.when(
+              likeRepository.findByUserIdAndPostId(
+                  Mockito.eq(1L), Mockito.eq("p1"), Mockito.any(Pageable.class)))
           .thenReturn(existing);
 
       ApiResponseDTO<LikeResponse> response = service.like(request);
@@ -107,14 +109,17 @@ class LikeServiceImplTest {
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(1L);
 
-      Mockito.when(likeRepository.findByUserIdAndCommentId(Mockito.eq(1L), Mockito.eq("c1"), Mockito.any(Pageable.class)))
+      Mockito.when(
+              likeRepository.findByUserIdAndCommentId(
+                  Mockito.eq(1L), Mockito.eq("c1"), Mockito.any(Pageable.class)))
           .thenReturn(none);
 
       Mockito.when(likeMapper.toLike(Mockito.same(request))).thenReturn(mappedLike);
       Mockito.when(likeRepository.save(Mockito.any(Like.class))).thenReturn(saved);
 
       Mockito.when(commentRepository.findById("c1")).thenReturn(Optional.of(comment));
-      Mockito.when(commentRepository.save(Mockito.any(Comment.class))).thenAnswer(inv -> inv.getArgument(0));
+      Mockito.when(commentRepository.save(Mockito.any(Comment.class)))
+          .thenAnswer(inv -> inv.getArgument(0));
 
       Mockito.when(userClient.getUserById(1L)).thenThrow(new RuntimeException("down"));
       Mockito.when(likeMapper.toLikeResponse(saved)).thenReturn(mappedResponse);
@@ -154,7 +159,9 @@ class LikeServiceImplTest {
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(1L);
-      Mockito.when(likeRepository.findByUserIdAndPostId(Mockito.eq(1L), Mockito.eq("p1"), Mockito.any(Pageable.class)))
+      Mockito.when(
+              likeRepository.findByUserIdAndPostId(
+                  Mockito.eq(1L), Mockito.eq("p1"), Mockito.any(Pageable.class)))
           .thenReturn(none);
 
       ApiResponseDTO<String> response = service.unlike(request);
@@ -184,11 +191,14 @@ class LikeServiceImplTest {
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(1L);
 
-      Mockito.when(likeRepository.findByUserIdAndCommentId(Mockito.eq(1L), Mockito.eq("c1"), Mockito.any(Pageable.class)))
+      Mockito.when(
+              likeRepository.findByUserIdAndCommentId(
+                  Mockito.eq(1L), Mockito.eq("c1"), Mockito.any(Pageable.class)))
           .thenReturn(page);
 
       Mockito.when(commentRepository.findById("c1")).thenReturn(Optional.of(comment));
-      Mockito.when(commentRepository.save(Mockito.any(Comment.class))).thenAnswer(inv -> inv.getArgument(0));
+      Mockito.when(commentRepository.save(Mockito.any(Comment.class)))
+          .thenAnswer(inv -> inv.getArgument(0));
 
       ApiResponseDTO<String> response = service.unlike(request);
 
@@ -216,19 +226,22 @@ class LikeServiceImplTest {
 
     Page<Like> page = new PageImpl<>(List.of(like));
 
-    Mockito.when(likeRepository.findByPostId(Mockito.eq("p1"), Mockito.any(Pageable.class))).thenReturn(page);
+    Mockito.when(likeRepository.findByPostId(Mockito.eq("p1"), Mockito.any(Pageable.class)))
+        .thenReturn(page);
     ApiResponsePaginationDTO<LikeResponse> byPost = service.getLikesByPost("p1", 0, 10);
     Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), byPost.getStatus());
     Assertions.assertEquals(1, byPost.getData().size());
     Assertions.assertNotNull(byPost.getData().get(0).getUser());
 
-    Mockito.when(likeRepository.findByUserId(Mockito.eq(7L), Mockito.any(Pageable.class))).thenReturn(page);
+    Mockito.when(likeRepository.findByUserId(Mockito.eq(7L), Mockito.any(Pageable.class)))
+        .thenReturn(page);
     ApiResponsePaginationDTO<LikeResponse> byUser = service.getLikesByUser(7L, 0, 10);
     Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), byUser.getStatus());
     Assertions.assertEquals(1, byUser.getData().size());
     Assertions.assertNotNull(byUser.getData().get(0).getUser());
 
-    Mockito.when(likeRepository.findByCommentId(Mockito.eq("c1"), Mockito.any(Pageable.class))).thenReturn(page);
+    Mockito.when(likeRepository.findByCommentId(Mockito.eq("c1"), Mockito.any(Pageable.class)))
+        .thenReturn(page);
     ApiResponsePaginationDTO<LikeResponse> byComment = service.getLikesByComment("c1", 0, 10);
     Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), byComment.getStatus());
     Assertions.assertEquals(1, byComment.getData().size());
@@ -263,11 +276,14 @@ class LikeServiceImplTest {
     Mockito.when(likeRepository.save(Mockito.any(Like.class))).thenReturn(saved);
     Mockito.when(likeMapper.toLikeResponse(saved)).thenReturn(mappedResponse);
 
-    Mockito.when(likeRepository.findByUserIdAndPostId(Mockito.eq(1L), Mockito.eq("p1"), Mockito.any(Pageable.class)))
+    Mockito.when(
+            likeRepository.findByUserIdAndPostId(
+                Mockito.eq(1L), Mockito.eq("p1"), Mockito.any(Pageable.class)))
         .thenReturn(none);
 
     Mockito.when(postRepository.findById("p1")).thenReturn(Optional.of(post));
-    Mockito.when(postRepository.save(Mockito.any(Post.class))).thenAnswer(inv -> inv.getArgument(0));
+    Mockito.when(postRepository.save(Mockito.any(Post.class)))
+        .thenAnswer(inv -> inv.getArgument(0));
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(1L);
@@ -282,4 +298,3 @@ class LikeServiceImplTest {
     }
   }
 }
-

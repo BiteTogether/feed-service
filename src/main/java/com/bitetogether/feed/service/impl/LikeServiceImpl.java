@@ -19,7 +19,10 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +38,8 @@ public class LikeServiceImpl implements LikeService {
   CommentRepository commentRepository;
   LikeMapper likeMapper;
   UserClient userClient;
+
+  private static final String SORT_BY_CREATED_AT = "createdAt";
 
   @Override
   @Transactional
@@ -97,7 +102,8 @@ public class LikeServiceImpl implements LikeService {
   @Override
   @Transactional(readOnly = true)
   public ApiResponsePaginationDTO<LikeResponse> getLikesByUser(Long userId, int page, int size) {
-    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Pageable pageable =
+        PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, SORT_BY_CREATED_AT));
     Page<Like> likePage = likeRepository.findByUserId(userId, pageable);
     Page<LikeResponse> responsePage = likePage.map(this::mapLikeToLikeResponseWithUser);
     return ApiResponseUtil.buildApiResponse(
@@ -112,7 +118,8 @@ public class LikeServiceImpl implements LikeService {
   @Override
   @Transactional(readOnly = true)
   public ApiResponsePaginationDTO<LikeResponse> getLikesByPost(String postId, int page, int size) {
-    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Pageable pageable =
+        PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, SORT_BY_CREATED_AT));
     Page<Like> likePage = likeRepository.findByPostId(postId, pageable);
     Page<LikeResponse> responsePage = likePage.map(this::mapLikeToLikeResponseWithUser);
     return ApiResponseUtil.buildApiResponse(
@@ -128,7 +135,8 @@ public class LikeServiceImpl implements LikeService {
   @Transactional(readOnly = true)
   public ApiResponsePaginationDTO<LikeResponse> getLikesByComment(
       String commentId, int page, int size) {
-    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Pageable pageable =
+        PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, SORT_BY_CREATED_AT));
     Page<Like> likePage = likeRepository.findByCommentId(commentId, pageable);
     Page<LikeResponse> responsePage = likePage.map(this::mapLikeToLikeResponseWithUser);
     return ApiResponseUtil.buildApiResponse(
@@ -144,7 +152,8 @@ public class LikeServiceImpl implements LikeService {
     log.info("Mapping like to response, like: {}", like);
     UserDTO userDTO = null;
     try {
-      ResponseEntity<ApiResponseDTO<UserDTO>> userResponse = userClient.getUserById(like.getUserId());
+      ResponseEntity<ApiResponseDTO<UserDTO>> userResponse =
+          userClient.getUserById(like.getUserId());
       userDTO = userResponse.getBody() != null ? userResponse.getBody().getData() : null;
     } catch (Exception ex) {
       log.error("Failed to fetch userDTO for userId {}: {}", like.getUserId(), ex.getMessage(), ex);

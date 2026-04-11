@@ -1,6 +1,8 @@
 package com.bitetogether.feed.controller;
 
-import static com.bitetogether.common.util.Constants.*;
+import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_NUMBER;
+import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_SIZE;
+import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FEED;
 
 import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.common.dto.ApiResponsePaginationDTO;
@@ -13,7 +15,14 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Tag(name = "Like Service", description = "APIs for managing likes on posts and comments")
@@ -52,7 +61,8 @@ public class LikeController {
       @PathVariable Long userId,
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
-    ApiResponsePaginationDTO<LikeResponse> response = likeService.getLikesByUser(userId, page, size);
+    ApiResponsePaginationDTO<LikeResponse> response =
+        likeService.getLikesByUser(userId, page, size);
     return ResponseEntity.ok(response);
   }
 
@@ -64,7 +74,8 @@ public class LikeController {
       @PathVariable String postId,
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
-    ApiResponsePaginationDTO<LikeResponse> response = likeService.getLikesByPost(postId, page, size);
+    ApiResponsePaginationDTO<LikeResponse> response =
+        likeService.getLikesByPost(postId, page, size);
     return ResponseEntity.ok(response);
   }
 

@@ -63,7 +63,8 @@ class PostServiceImplTest {
     Mockito.when(postRepository.save(Mockito.any(Post.class))).thenReturn(saved);
     Mockito.when(userClient.getUserById(Mockito.eq(9L))).thenReturn(ResponseEntity.ok(userBody));
     Mockito.when(postMapper.toPostResponse(saved)).thenReturn(mappedResponse);
-    Mockito.when(likeRepository.existsByUserIdAndPostId(9L, "p1")).thenThrow(new RuntimeException("db"));
+    Mockito.when(likeRepository.existsByUserIdAndPostId(9L, "p1"))
+        .thenThrow(new RuntimeException("db"));
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(9L);
@@ -75,7 +76,8 @@ class PostServiceImplTest {
       Assertions.assertEquals("p1", response.getData().getId());
       Assertions.assertNotNull(response.getData().getUser());
       Assertions.assertFalse(response.getData().isAlreadyLiked());
-      Mockito.verify(postRepository).save(Mockito.argThat(p -> p.getUserId() != null && p.getUserId().equals(9L)));
+      Mockito.verify(postRepository)
+          .save(Mockito.argThat(p -> p.getUserId() != null && p.getUserId().equals(9L)));
     }
   }
 
@@ -119,7 +121,9 @@ class PostServiceImplTest {
   void getPostsByUserId_emptyPage_returnsSuccessEmptyList() {
     Page<Post> page = new PageImpl<>(List.of());
 
-    Mockito.when(postRepository.findByUserIdOrderByCreatedAtDesc(Mockito.eq(1L), Mockito.any(Pageable.class)))
+    Mockito.when(
+            postRepository.findByUserIdOrderByCreatedAtDesc(
+                Mockito.eq(1L), Mockito.any(Pageable.class)))
         .thenReturn(page);
 
     ApiResponsePaginationDTO<PostResponse> response = service.getPostsByUserId(1L, 0, 10);
@@ -146,7 +150,9 @@ class PostServiceImplTest {
     PostResponse mappedResponse = new PostResponse();
     mappedResponse.setId("p1");
 
-    Mockito.when(postRepository.findByUserIdOrderByCreatedAtDesc(Mockito.eq(2L), Mockito.any(Pageable.class)))
+    Mockito.when(
+            postRepository.findByUserIdOrderByCreatedAtDesc(
+                Mockito.eq(2L), Mockito.any(Pageable.class)))
         .thenReturn(page);
 
     Mockito.when(userClient.getUserById(2L)).thenReturn(ResponseEntity.ok(userBody));
@@ -180,7 +186,9 @@ class PostServiceImplTest {
     PostResponse mappedResponse = new PostResponse();
     mappedResponse.setId("p1");
 
-    Mockito.when(postRepository.findByUserIdOrderByCreatedAtDesc(Mockito.eq(2L), Mockito.any(Pageable.class)))
+    Mockito.when(
+            postRepository.findByUserIdOrderByCreatedAtDesc(
+                Mockito.eq(2L), Mockito.any(Pageable.class)))
         .thenReturn(page);
 
     Mockito.when(userClient.getUserById(2L)).thenReturn(ResponseEntity.ok(userBody));
@@ -188,7 +196,8 @@ class PostServiceImplTest {
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(7L);
-      Mockito.when(likeRepository.findByUserIdAndPostIdIn(Mockito.eq(7L), Mockito.eq(List.of("p1"))))
+      Mockito.when(
+              likeRepository.findByUserIdAndPostIdIn(Mockito.eq(7L), Mockito.eq(List.of("p1"))))
           .thenThrow(new RuntimeException("db"));
 
       ApiResponsePaginationDTO<PostResponse> response = service.getPostsByUserId(2L, 0, 10);
@@ -214,7 +223,8 @@ class PostServiceImplTest {
 
       Assertions.assertEquals(ApiResponseStatus.FORBIDDEN.getCode(), response.getStatus());
       Assertions.assertNull(response.getData());
-      Mockito.verify(postMapper, Mockito.never()).updatePostFromPostRequest(Mockito.any(PostRequest.class), Mockito.any(Post.class));
+      Mockito.verify(postMapper, Mockito.never())
+          .updatePostFromPostRequest(Mockito.any(PostRequest.class), Mockito.any(Post.class));
       Mockito.verify(postRepository, Mockito.never()).save(Mockito.any(Post.class));
     }
   }
@@ -245,7 +255,8 @@ class PostServiceImplTest {
       Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       Assertions.assertNotNull(response.getData());
       Assertions.assertEquals("p1", response.getData().getId());
-      Mockito.verify(postMapper).updatePostFromPostRequest(Mockito.any(PostRequest.class), Mockito.same(post));
+      Mockito.verify(postMapper)
+          .updatePostFromPostRequest(Mockito.any(PostRequest.class), Mockito.same(post));
       Mockito.verify(postRepository).save(Mockito.same(post));
     }
   }
@@ -300,7 +311,8 @@ class PostServiceImplTest {
                 Mockito.any(Pageable.class)))
         .thenReturn(new PageImpl<>(List.of()));
 
-    ApiResponsePaginationDTO<PostResponse> response = service.getNewFeed(1, 1, 10.0, 106.0, 0.2, 0.2);
+    ApiResponsePaginationDTO<PostResponse> response =
+        service.getNewFeed(1, 1, 10.0, 106.0, 0.2, 0.2);
 
     Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
     Assertions.assertNotNull(response.getData());
@@ -321,7 +333,8 @@ class PostServiceImplTest {
                 Mockito.any(Pageable.class)))
         .thenReturn(new PageImpl<>(List.of()));
 
-    ApiResponsePaginationDTO<PostResponse> response = service.getNewFeed(0, 10, 10.0, 106.0, 0.2, 0.2);
+    ApiResponsePaginationDTO<PostResponse> response =
+        service.getNewFeed(0, 10, 10.0, 106.0, 0.2, 0.2);
 
     Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
     Assertions.assertNotNull(response.getData());
@@ -382,4 +395,3 @@ class PostServiceImplTest {
     }
   }
 }
-

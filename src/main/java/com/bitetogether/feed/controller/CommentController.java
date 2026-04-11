@@ -1,6 +1,8 @@
 package com.bitetogether.feed.controller;
 
-import static com.bitetogether.common.util.Constants.*;
+import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_NUMBER;
+import static com.bitetogether.common.util.Constants.DEFAULT_PAGE_SIZE;
+import static com.bitetogether.common.util.Constants.PREFIX_REQUEST_MAPPING_FEED;
 
 import com.bitetogether.common.dto.ApiResponseDTO;
 import com.bitetogether.common.dto.ApiResponsePaginationDTO;
@@ -8,6 +10,7 @@ import com.bitetogether.feed.dto.request.CommentRequest;
 import com.bitetogether.feed.dto.response.CommentResponse;
 import com.bitetogether.feed.service.inter.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -15,7 +18,14 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Tag(name = "Comment Service", description = "APIs for managing comments on posts")
@@ -75,7 +85,8 @@ public class CommentController {
   @GetMapping("/{commentId}/replies")
   public ResponseEntity<ApiResponseDTO<List<CommentResponse>>> getRepliesByComment(
       @PathVariable String commentId) {
-    ApiResponseDTO<List<CommentResponse>> response = commentService.getRepliesByCommentId(commentId);
+    ApiResponseDTO<List<CommentResponse>> response =
+        commentService.getRepliesByCommentId(commentId);
     return ResponseEntity.ok(response);
   }
 

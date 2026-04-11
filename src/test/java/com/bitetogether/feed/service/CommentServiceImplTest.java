@@ -113,7 +113,7 @@ class CommentServiceImplTest {
     mapped.setId("c1");
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(99L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(99L);
 
       Mockito.when(postRepository.findById("p1")).thenReturn(Optional.of(post));
       Mockito.when(commentMapper.toComment(request)).thenReturn(toSave);
@@ -164,7 +164,8 @@ class CommentServiceImplTest {
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(55L);
-      Mockito.when(likeRepository.findByUserIdAndCommentIdIn(Mockito.eq(55L), Mockito.eq(List.of("c1"))))
+      Mockito.when(
+              likeRepository.findByUserIdAndCommentIdIn(Mockito.eq(55L), Mockito.eq(List.of("c1"))))
           .thenThrow(new RuntimeException("db"));
 
       ApiResponseDTO<CommentResponse> response = service.getCommentById("c1");
@@ -179,7 +180,9 @@ class CommentServiceImplTest {
   @Test
   void getCommentsByPostId_whenEmptyPage_returnsSuccessEmptyList() {
     Page<Comment> page = new PageImpl<>(List.of());
-    Mockito.when(commentRepository.findByPostIdAndParentCommentIdIsNull(Mockito.eq("p1"), Mockito.any(Pageable.class)))
+    Mockito.when(
+            commentRepository.findByPostIdAndParentCommentIdIsNull(
+                Mockito.eq("p1"), Mockito.any(Pageable.class)))
         .thenReturn(page);
 
     ApiResponsePaginationDTO<CommentResponse> response = service.getCommentsByPostId("p1", 0, 10);
@@ -206,13 +209,15 @@ class CommentServiceImplTest {
     ApiResponseDTO<UserDTO> userBody = new ApiResponseDTO<>();
     userBody.setData(new UserDTO());
 
-    Mockito.when(commentRepository.findByUserId(Mockito.eq(10L), Mockito.any(Pageable.class))).thenReturn(page);
+    Mockito.when(commentRepository.findByUserId(Mockito.eq(10L), Mockito.any(Pageable.class)))
+        .thenReturn(page);
     Mockito.when(userClient.getUserById(10L)).thenReturn(ResponseEntity.ok(userBody));
     Mockito.when(commentMapper.toCommentResponse(comment)).thenReturn(mapped);
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(10L);
-      Mockito.when(likeRepository.findByUserIdAndCommentIdIn(10L, List.of("c1"))).thenReturn(List.of(like));
+      Mockito.when(likeRepository.findByUserIdAndCommentIdIn(10L, List.of("c1")))
+          .thenReturn(List.of(like));
 
       ApiResponsePaginationDTO<CommentResponse> response = service.getCommentsByUserId(10L, 0, 10);
 
@@ -273,7 +278,8 @@ class CommentServiceImplTest {
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(2L);
       Mockito.when(userClient.getUserById(2L)).thenReturn(ResponseEntity.ok(userBody));
-      Mockito.when(likeRepository.findByUserIdAndCommentIdIn(2L, List.of("c1"))).thenReturn(List.of());
+      Mockito.when(likeRepository.findByUserIdAndCommentIdIn(2L, List.of("c1")))
+          .thenReturn(List.of());
 
       ApiResponseDTO<CommentResponse> response = service.updateComment("c1", request);
 
@@ -369,4 +375,3 @@ class CommentServiceImplTest {
     Assertions.assertTrue(response.getData().isEmpty());
   }
 }
-
