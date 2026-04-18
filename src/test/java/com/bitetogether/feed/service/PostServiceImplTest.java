@@ -13,6 +13,7 @@ import com.bitetogether.feed.model.Like;
 import com.bitetogether.feed.model.Post;
 import com.bitetogether.feed.repository.LikeRepository;
 import com.bitetogether.feed.repository.PostRepository;
+import com.bitetogether.feed.repository.SavePostRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
 import com.bitetogether.feed.service.impl.PostServiceImpl;
 import java.util.List;
@@ -41,6 +42,8 @@ class PostServiceImplTest {
 
   @Mock private LikeRepository likeRepository;
 
+  @Mock private SavePostRepository savePostRepository;
+
   @InjectMocks private PostServiceImpl service;
 
   @Test
@@ -65,6 +68,7 @@ class PostServiceImplTest {
     Mockito.when(postMapper.toPostResponse(saved)).thenReturn(mappedResponse);
     Mockito.when(likeRepository.existsByUserIdAndPostId(9L, "p1"))
         .thenThrow(new RuntimeException("db"));
+    Mockito.when(savePostRepository.existsByUserIdAndPostId(9L, "p1")).thenReturn(false);
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(9L);
@@ -76,6 +80,7 @@ class PostServiceImplTest {
       Assertions.assertEquals("p1", response.getData().getId());
       Assertions.assertNotNull(response.getData().getUser());
       Assertions.assertFalse(response.getData().isAlreadyLiked());
+      Assertions.assertFalse(response.getData().isAlreadySaved());
       Mockito.verify(postRepository)
           .save(Mockito.argThat(p -> p.getUserId() != null && p.getUserId().equals(9L)));
     }
@@ -94,6 +99,7 @@ class PostServiceImplTest {
     Mockito.when(userClient.getUserById(11L)).thenThrow(new RuntimeException("down"));
     Mockito.when(postMapper.toPostResponse(post)).thenReturn(mappedResponse);
     Mockito.when(likeRepository.existsByUserIdAndPostId(55L, "p1")).thenReturn(true);
+    Mockito.when(savePostRepository.existsByUserIdAndPostId(55L, "p1")).thenReturn(true);
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(55L);
@@ -104,6 +110,7 @@ class PostServiceImplTest {
       Assertions.assertNotNull(response.getData());
       Assertions.assertNull(response.getData().getUser());
       Assertions.assertTrue(response.getData().isAlreadyLiked());
+      Assertions.assertTrue(response.getData().isAlreadySaved());
     }
   }
 
@@ -159,6 +166,8 @@ class PostServiceImplTest {
     Mockito.when(postMapper.toPostResponse(post)).thenReturn(mappedResponse);
     Mockito.when(likeRepository.findByUserIdAndPostIdIn(Mockito.eq(7L), Mockito.eq(List.of("p1"))))
         .thenReturn(List.of(like));
+    Mockito.when(savePostRepository.findByUserIdAndPostIdIn(7L, List.of("p1")))
+        .thenReturn(List.of());
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(7L);
@@ -168,6 +177,7 @@ class PostServiceImplTest {
       Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       Assertions.assertEquals(1, response.getData().size());
       Assertions.assertTrue(response.getData().get(0).isAlreadyLiked());
+      Assertions.assertFalse(response.getData().get(0).isAlreadySaved());
       Assertions.assertNotNull(response.getData().get(0).getUser());
     }
   }
@@ -193,6 +203,8 @@ class PostServiceImplTest {
 
     Mockito.when(userClient.getUserById(2L)).thenReturn(ResponseEntity.ok(userBody));
     Mockito.when(postMapper.toPostResponse(post)).thenReturn(mappedResponse);
+    Mockito.when(savePostRepository.findByUserIdAndPostIdIn(7L, List.of("p1")))
+        .thenReturn(List.of());
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(7L);
@@ -205,6 +217,7 @@ class PostServiceImplTest {
       Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       Assertions.assertEquals(1, response.getData().size());
       Assertions.assertFalse(response.getData().get(0).isAlreadyLiked());
+      Assertions.assertFalse(response.getData().get(0).isAlreadySaved());
     }
   }
 
@@ -246,6 +259,7 @@ class PostServiceImplTest {
     Mockito.when(userClient.getUserById(2L)).thenReturn(ResponseEntity.ok(userBody));
     Mockito.when(postMapper.toPostResponse(post)).thenReturn(mappedResponse);
     Mockito.when(likeRepository.existsByUserIdAndPostId(2L, "p1")).thenReturn(false);
+    Mockito.when(savePostRepository.existsByUserIdAndPostId(2L, "p1")).thenReturn(false);
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(2L);
@@ -276,6 +290,7 @@ class PostServiceImplTest {
 
       Assertions.assertEquals(ApiResponseStatus.FORBIDDEN.getCode(), response.getStatus());
       Mockito.verify(postRepository, Mockito.never()).delete(Mockito.any(Post.class));
+      Mockito.verify(savePostRepository, Mockito.never()).deleteAllByPostId(Mockito.anyString());
     }
   }
 
@@ -294,6 +309,7 @@ class PostServiceImplTest {
 
       Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       Mockito.verify(postRepository).delete(Mockito.same(post));
+      Mockito.verify(savePostRepository).deleteAllByPostId("p1");
     }
   }
 
@@ -381,6 +397,8 @@ class PostServiceImplTest {
     Mockito.when(postMapper.toPostResponse(post)).thenReturn(mappedResponse);
     Mockito.when(likeRepository.findByUserIdAndPostIdIn(Mockito.eq(5L), Mockito.eq(List.of("p1"))))
         .thenReturn(List.of(like));
+    Mockito.when(savePostRepository.findByUserIdAndPostIdIn(5L, List.of("p1")))
+        .thenReturn(List.of());
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(5L);
@@ -391,6 +409,7 @@ class PostServiceImplTest {
       Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       Assertions.assertEquals(1, response.getData().size());
       Assertions.assertTrue(response.getData().get(0).isAlreadyLiked());
+      Assertions.assertFalse(response.getData().get(0).isAlreadySaved());
       Assertions.assertNotNull(response.getData().get(0).getUser());
     }
   }

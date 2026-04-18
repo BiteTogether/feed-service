@@ -36,5 +36,7 @@ build/
 ### Environment Files ###
 .env
 
-### Firebase Sensitive Files ###
-src/main/resources/config/firebase-service-account.json
+# Firebase credentials - DO NOT COMMIT
+src/main/resources/config/*-firebase-adminsdk-*.json
+*firebase-service-account.json
+firebase-adminsdk-*.json
