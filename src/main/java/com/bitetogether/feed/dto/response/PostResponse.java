@@ -38,6 +38,9 @@ public class PostResponse extends BaseResponse {
   @Schema(description = "Whether the current user has already liked this post", example = "true")
   private boolean alreadyLiked;
 
+  @Schema(description = "Whether the current user has already saved this post", example = "true")
+  private boolean alreadySaved;
+
   @Schema(description = "User who created the post")
   private UserDTO user;
 }

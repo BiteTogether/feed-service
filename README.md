@@ -11,6 +11,7 @@ It is a Spring Boot microservice using MongoDB, OpenFeign (for user/friend data)
 - Post creation, update, delete, and retrieval
 - Comment creation (including replies), update, delete, and retrieval
 - Like/unlike for posts and comments
+- Save/unsave posts for each user
 - Aggregated counters on posts/comments (`likeCount`, `commentCount`, `repliesCount`)
 - New feed retrieval based on friend list + recent time window + current map viewport
 
@@ -77,7 +78,7 @@ Default pagination values:
 
 ### Request headers (important)
 
-For write operations and personalization fields (`alreadyLiked`), requests should include user context (typically forwarded by gateway):
+For write operations and personalization fields (`alreadyLiked`, `alreadySaved`), requests should include user context (typically forwarded by gateway):
 
 - `X-User-Id`
 - `X-User-Role`
@@ -114,7 +115,7 @@ Controllers return common wrapper types:
 
 `PostResponse` key fields:
 - `id`, `placeId`, `content`, `rating`, `photoUrl`, `latitude`, `longitude`
-- `likeCount`, `commentCount`, `alreadyLiked`
+- `likeCount`, `commentCount`, `alreadyLiked`, `alreadySaved`
 - `user` (`UserDTO`)
 - audit fields from `BaseResponse` (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`)
 
@@ -171,6 +172,21 @@ Base path: `/api/v1/feeds/likes`
 - `id`, `postId`, `commentId`
 - `user` (`UserDTO`)
 - audit fields from `BaseResponse`
+
+### Saved Post APIs
+
+Base path: `/api/v1/feeds/saved-posts`
+
+| Method | Endpoint | Description | Body |
+|---|---|---|---|
+| `POST` | `/api/v1/feeds/saved-posts/{postId}` | Save a post for current user | - |
+| `GET` | `/api/v1/feeds/saved-posts` | Get current user's saved posts (paged) | - |
+| `DELETE` | `/api/v1/feeds/saved-posts/{postId}` | Remove a saved post for current user | - |
+
+Behavior notes:
+- Saved posts are unique per `(userId, postId)`.
+- `GET /saved-posts` uses current authenticated user context.
+- When a post is deleted, corresponding records in `saved_posts` are removed.
 
 ## Configuration
 

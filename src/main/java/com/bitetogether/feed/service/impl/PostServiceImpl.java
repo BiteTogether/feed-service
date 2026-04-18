@@ -12,14 +12,17 @@ import com.bitetogether.feed.dto.response.PostResponse;
 import com.bitetogether.feed.mapper.PostMapper;
 import com.bitetogether.feed.model.Like;
 import com.bitetogether.feed.model.Post;
+import com.bitetogether.feed.model.SavePost;
 import com.bitetogether.feed.repository.LikeRepository;
 import com.bitetogether.feed.repository.PostRepository;
+import com.bitetogether.feed.repository.SavePostRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
 import com.bitetogether.feed.service.inter.FirebaseStorageService;
 import com.bitetogether.feed.service.inter.PostService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -42,6 +45,7 @@ public class PostServiceImpl implements PostService {
   PostMapper postMapper;
   UserClient userClient;
   LikeRepository likeRepository;
+  SavePostRepository savePostRepository;
   FirebaseStorageService firebaseStorageService;
 
   @Override
@@ -97,27 +101,31 @@ public class PostServiceImpl implements PostService {
       return List.of();
     }
 
-    // Batch query for likes
     List<String> postIds = posts.stream().map(Post::getId).toList();
-    List<String> likedPostIds = List.of();
+    Set<String> likedPostIds = Set.of();
+    Set<String> savedPostIds = Set.of();
     try {
       Long currentUserId = UserContextUtils.getCurrentUserId();
       likedPostIds =
           likeRepository.findByUserIdAndPostIdIn(currentUserId, postIds).stream()
               .map(Like::getPostId)
-              .toList();
+              .collect(java.util.stream.Collectors.toSet());
+      savedPostIds =
+          savePostRepository.findByUserIdAndPostIdIn(currentUserId, postIds).stream()
+              .map(SavePost::getPostId)
+              .collect(java.util.stream.Collectors.toSet());
     } catch (Exception ex) {
-      log.debug("Could not fetch batch likes: {}", ex.getMessage());
+      log.debug("Could not fetch batch like/saved flags: {}", ex.getMessage());
     }
 
-    // Map posts to responses
-    List<String> finalLikedPostIds = likedPostIds;
+    Set<String> finalLikedPostIds = likedPostIds;
+    Set<String> finalSavedPostIds = savedPostIds;
     return posts.stream()
         .map(
             post -> {
               PostResponse response = mapPostToPostResponseWithUser(post);
-              // Override the alreadyLiked with batch result
               response.setAlreadyLiked(finalLikedPostIds.contains(post.getId()));
+              response.setAlreadySaved(finalSavedPostIds.contains(post.getId()));
               return response;
             })
         .toList();
@@ -186,6 +194,7 @@ public class PostServiceImpl implements PostService {
     }
 
     postRepository.delete(post);
+    savePostRepository.deleteAllByPostId(id);
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
         ApiResponseStatus.SUCCESS.getDefaultMessage(),
@@ -264,14 +273,17 @@ public class PostServiceImpl implements PostService {
     PostResponse postResponse = postMapper.toPostResponse(post);
     postResponse.setUser(userDTO);
 
-    // Check if current user has already liked this post
     try {
       Long currentUserId = UserContextUtils.getCurrentUserId();
       boolean alreadyLiked = likeRepository.existsByUserIdAndPostId(currentUserId, post.getId());
+      boolean alreadySaved =
+          savePostRepository.existsByUserIdAndPostId(currentUserId, post.getId());
       postResponse.setAlreadyLiked(alreadyLiked);
+      postResponse.setAlreadySaved(alreadySaved);
     } catch (Exception ex) {
-      log.debug("Could not determine alreadyLiked status: {}", ex.getMessage());
+      log.debug("Could not determine alreadyLiked/alreadySaved status: {}", ex.getMessage());
       postResponse.setAlreadyLiked(false);
+      postResponse.setAlreadySaved(false);
     }
 
     return postResponse;
