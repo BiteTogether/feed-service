@@ -8,6 +8,14 @@ public class PostRequest {
   @Schema(description = "ID of the place associated with the post", example = "67890")
   private Long placeId;
 
+  @Schema(description = "Name of the place associated with the post", example = "Pizza 4P's")
+  private String placeName;
+
+  @Schema(
+      description = "Address of the place associated with the post",
+      example = "151B Hai Ba Trung, District 3, Ho Chi Minh City")
+  private String placeAddress;
+
   @Schema(description = "Latitude of the post location", example = "10.7769")
   private Double latitude;
 
