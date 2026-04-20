@@ -22,6 +22,12 @@ public class Post extends BaseModel {
   @Field("place_id")
   private Long placeId;
 
+  @Field("place_name")
+  private String placeName;
+
+  @Field("place_address")
+  private String placeAddress;
+
   @Field("latitude")
   private Double latitude;
 
