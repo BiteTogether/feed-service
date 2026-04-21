@@ -229,7 +229,11 @@ public class PostServiceImpl implements PostService {
       log.error("Failed to fetch friend list: {}", ex.getMessage(), ex);
       friends = List.of();
     }
-    List<Long> friendIds = extractUserIds(friends);
+    Long currentUserId = UserContextUtils.getCurrentUserId();
+    List<Long> friendIds =
+        java.util.stream.Stream.concat(extractUserIds(friends).stream(), java.util.stream.Stream.of(currentUserId))
+            .distinct()
+            .toList();
 
     double halfLatitudeDelta = Math.abs(latitudeDelta) / 2.0;
     double halfLongitudeDelta = Math.abs(longitudeDelta) / 2.0;
