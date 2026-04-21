@@ -13,13 +13,12 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum ErrorCode implements BaseErrorCode {
   // File upload errors
-  FILE_REQUIRED(ApiResponseStatus.BAD_REQUEST, "File is required"),
-  FILE_SIZE_EXCEEDED(
-      ApiResponseStatus.BAD_REQUEST, "File size exceeds maximum allowed size of 10MB"),
+  FILE_EMPTY(ApiResponseStatus.BAD_REQUEST, "File is required"),
+  FILE_TOO_LARGE(ApiResponseStatus.BAD_REQUEST, "File size exceeds maximum allowed size of 5MB"),
   INVALID_FILE_TYPE(
       ApiResponseStatus.BAD_REQUEST,
       "Invalid file type. Only images are allowed (JPEG, PNG, GIF, WEBP)"),
-  FILE_UPLOAD_FAILED(ApiResponseStatus.INTERNAL_SERVER_ERROR, "Failed to upload file to storage"),
+  FILE_UPLOAD_ERROR(ApiResponseStatus.INTERNAL_SERVER_ERROR, "Failed to upload file to storage"),
   FILE_DELETE_FAILED(ApiResponseStatus.INTERNAL_SERVER_ERROR, "Failed to delete file from storage"),
   INVALID_FILE_URL(ApiResponseStatus.BAD_REQUEST, "Invalid file URL format"),
   FILE_NOT_FOUND(ApiResponseStatus.NOT_FOUND, "File not found in storage"),
