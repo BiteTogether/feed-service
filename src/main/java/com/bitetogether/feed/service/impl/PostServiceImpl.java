@@ -36,6 +36,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.stream.Stream;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -109,11 +112,11 @@ public class PostServiceImpl implements PostService {
       likedPostIds =
           likeRepository.findByUserIdAndPostIdIn(currentUserId, postIds).stream()
               .map(Like::getPostId)
-              .collect(java.util.stream.Collectors.toSet());
+              .collect(Collectors.toSet());
       savedPostIds =
           savePostRepository.findByUserIdAndPostIdIn(currentUserId, postIds).stream()
               .map(SavePost::getPostId)
-              .collect(java.util.stream.Collectors.toSet());
+              .collect(Collectors.toSet());
     } catch (Exception ex) {
       log.debug("Could not fetch batch like/saved flags: {}", ex.getMessage());
     }
@@ -229,7 +232,11 @@ public class PostServiceImpl implements PostService {
       log.error("Failed to fetch friend list: {}", ex.getMessage(), ex);
       friends = List.of();
     }
-    List<Long> friendIds = extractUserIds(friends);
+    Long currentUserId = UserContextUtils.getCurrentUserId();
+    List<Long> friendIds =
+        java.util.stream.Stream.concat(extractUserIds(friends).stream(), Stream.of(currentUserId))
+            .distinct()
+            .toList();
 
     double halfLatitudeDelta = Math.abs(latitudeDelta) / 2.0;
     double halfLongitudeDelta = Math.abs(longitudeDelta) / 2.0;
