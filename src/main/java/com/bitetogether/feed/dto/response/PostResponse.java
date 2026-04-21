@@ -10,7 +10,7 @@ public class PostResponse extends BaseResponse {
   private String id;
 
   @Schema(description = "ID of the place associated with the post", example = "98765")
-  private Long placeId;
+  private String placeId;
 
   @Schema(description = "Name of the place associated with the post", example = "Pizza 4P's")
   private String placeName;

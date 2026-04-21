@@ -20,7 +20,7 @@ public class Post extends BaseModel {
   private Long userId;
 
   @Field("place_id")
-  private Long placeId;
+  private String placeId;
 
   @Field("place_name")
   private String placeName;

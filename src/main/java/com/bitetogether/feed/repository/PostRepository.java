@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 public interface PostRepository extends MongoRepository<Post, String> {
   Page<Post> findByUserId(Long userId, Pageable pageable);
 
-  Page<Post> findByPlaceId(Long placeId, Pageable pageable);
+  Page<Post> findByPlaceId(String placeId, Pageable pageable);
 
   // Custom query với sorting mặc định theo createdAt descending
   @Query(value = "{}", sort = "{ 'createdAt': -1 }")
