@@ -105,7 +105,7 @@ public class PostController {
   @Operation(
       summary = "Upload Image",
       description =
-          "Upload an image file to Firebase Storage and get the public URL. Maximum file size is 10MB. Supported formats: JPEG, PNG, GIF, WEBP.")
+          "Upload an image file to Firebase Storage and get the public URL. Maximum file size is 5MB. Supported formats: JPEG, PNG, GIF, WEBP.")
   @PostMapping(value = "/upload-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<ApiResponseDTO<String>> uploadImage(
       @RequestParam("file")
@@ -117,7 +117,12 @@ public class PostController {
                       mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
                       schema = @Schema(type = "string", format = "binary")))
           MultipartFile file) {
-    ApiResponseDTO<String> response = firebaseStorageService.uploadFile(file);
+    String imageUrl = firebaseStorageService.uploadPostImage(file);
+    ApiResponseDTO<String> response =
+        com.bitetogether.common.util.ApiResponseUtil.buildApiResponse(
+            com.bitetogether.common.enums.ApiResponseStatus.SUCCESS,
+            "File uploaded successfully",
+            imageUrl);
     return ResponseEntity.ok(response);
   }
 

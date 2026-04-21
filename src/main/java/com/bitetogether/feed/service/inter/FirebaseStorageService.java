@@ -1,10 +1,11 @@
 package com.bitetogether.feed.service.inter;
 
-import com.bitetogether.common.dto.ApiResponseDTO;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface FirebaseStorageService {
-  ApiResponseDTO<String> uploadFile(MultipartFile file);
+  String uploadFile(MultipartFile file, String folder);
 
-  ApiResponseDTO<String> deleteFile(String fileUrl);
+  void deleteFile(String fileUrl);
+
+  String uploadPostImage(MultipartFile file);
 }
