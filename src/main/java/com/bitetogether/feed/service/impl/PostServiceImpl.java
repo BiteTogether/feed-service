@@ -241,7 +241,7 @@ public class PostServiceImpl implements PostService {
     Page<Post> feedPage =
         postRepository.findByUserIdInAndCreatedAtAfterAndLatitudeBetweenAndLongitudeBetween(
             friendIds,
-            Instant.now().minus(1, ChronoUnit.YEARS),
+            Instant.now().minus(365, ChronoUnit.DAYS),
             minLatitude,
             maxLatitude,
             minLongitude,

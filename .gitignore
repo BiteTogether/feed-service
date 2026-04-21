@@ -40,3 +40,6 @@ build/
 src/main/resources/config/*-firebase-adminsdk-*.json
 *firebase-service-account.json
 firebase-adminsdk-*.json
+.gitnexus
+.claude
+AGENTS.md
