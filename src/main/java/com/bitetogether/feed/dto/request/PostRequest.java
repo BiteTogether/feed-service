@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class PostRequest {
   @Schema(description = "ID of the place associated with the post", example = "67890")
-  private Long placeId;
+  private String placeId;
 
   @Schema(description = "Name of the place associated with the post", example = "Pizza 4P's")
   private String placeName;
