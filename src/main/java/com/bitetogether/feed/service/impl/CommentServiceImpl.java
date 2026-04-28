@@ -5,9 +5,11 @@ import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
 import com.bitetogether.common.util.UserContextUtils;
+import com.bitetogether.feed.dto.FeedNotificationEvent;
 import com.bitetogether.feed.dto.UserDTO;
 import com.bitetogether.feed.dto.request.CommentRequest;
 import com.bitetogether.feed.dto.response.CommentResponse;
+import com.bitetogether.feed.enums.FeedNotificationType;
 import com.bitetogether.feed.mapper.CommentMapper;
 import com.bitetogether.feed.model.Comment;
 import com.bitetogether.feed.model.Like;
@@ -16,6 +18,7 @@ import com.bitetogether.feed.repository.CommentRepository;
 import com.bitetogether.feed.repository.LikeRepository;
 import com.bitetogether.feed.repository.PostRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
+import com.bitetogether.feed.service.NotificationProducer;
 import com.bitetogether.feed.service.inter.CommentService;
 import java.util.List;
 import lombok.AccessLevel;
@@ -41,6 +44,7 @@ public class CommentServiceImpl implements CommentService {
   CommentMapper commentMapper;
   UserClient userClient;
   LikeRepository likeRepository;
+  NotificationProducer notificationProducer;
 
   private static final String COMMENT_NOT_FOUND = "Comment not found";
 
@@ -73,6 +77,9 @@ public class CommentServiceImpl implements CommentService {
 
     post.setCommentCount(post.getCommentCount() + 1);
     postRepository.save(post);
+
+    // Send notification to the post owner
+    sendCommentNotification(currentUserId, post, saved.getContent());
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
@@ -259,5 +266,48 @@ public class CommentServiceImpl implements CommentService {
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS, "Replies retrieved successfully", replyResponses);
+  }
+
+  /** Sends a COMMENT notification to the post owner. Skips if commenter is the post owner. */
+  private void sendCommentNotification(Long commenterId, Post post, String commentContent) {
+    try {
+      // Don't notify yourself
+      if (post.getUserId().equals(commenterId)) return;
+
+      UserDTO actor = fetchUser(commenterId);
+      String actorName =
+          actor != null && actor.getFullName() != null ? actor.getFullName() : "Someone";
+      String actorAvatar = actor != null ? actor.getAvatar() : null;
+
+      String preview =
+          commentContent != null && commentContent.length() > 100
+              ? commentContent.substring(0, 100) + "..."
+              : commentContent;
+
+      notificationProducer.sendNotification(
+          FeedNotificationEvent.builder()
+              .actorId(commenterId)
+              .receiverId(post.getUserId())
+              .type(FeedNotificationType.COMMENT.name())
+              .targetId(post.getId())
+              .title("New Comment")
+              .message(actorName + " commented on your post: " + preview)
+              .actorName(actorName)
+              .actorAvatar(actorAvatar)
+              .build());
+    } catch (Exception e) {
+      log.error(
+          "Failed to send comment notification for post {}: {}", post.getId(), e.getMessage());
+    }
+  }
+
+  private UserDTO fetchUser(Long userId) {
+    try {
+      ResponseEntity<ApiResponseDTO<UserDTO>> response = userClient.getUserById(userId);
+      return response.getBody() != null ? response.getBody().getData() : null;
+    } catch (Exception e) {
+      log.error("Failed to fetch user {}: {}", userId, e.getMessage());
+      return null;
+    }
   }
 }

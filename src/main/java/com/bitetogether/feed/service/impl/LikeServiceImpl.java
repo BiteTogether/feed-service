@@ -5,15 +5,18 @@ import com.bitetogether.common.dto.ApiResponsePaginationDTO;
 import com.bitetogether.common.enums.ApiResponseStatus;
 import com.bitetogether.common.util.ApiResponseUtil;
 import com.bitetogether.common.util.UserContextUtils;
+import com.bitetogether.feed.dto.FeedNotificationEvent;
 import com.bitetogether.feed.dto.UserDTO;
 import com.bitetogether.feed.dto.request.LikeRequest;
 import com.bitetogether.feed.dto.response.LikeResponse;
+import com.bitetogether.feed.enums.FeedNotificationType;
 import com.bitetogether.feed.mapper.LikeMapper;
 import com.bitetogether.feed.model.Like;
 import com.bitetogether.feed.repository.CommentRepository;
 import com.bitetogether.feed.repository.LikeRepository;
 import com.bitetogether.feed.repository.PostRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
+import com.bitetogether.feed.service.NotificationProducer;
 import com.bitetogether.feed.service.inter.LikeService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +41,7 @@ public class LikeServiceImpl implements LikeService {
   CommentRepository commentRepository;
   LikeMapper likeMapper;
   UserClient userClient;
+  NotificationProducer notificationProducer;
 
   private static final String SORT_BY_CREATED_AT = "createdAt";
 
@@ -67,6 +71,11 @@ public class LikeServiceImpl implements LikeService {
     like.setUserId(currentUserId);
     Like saved = likeRepository.save(like);
     updateLikeCount(request, isComment, 1);
+
+    // Send notification to the post owner (not for comment likes, and not to self)
+    if (!isComment && request.getPostId() != null) {
+      sendLikeNotification(currentUserId, request.getPostId());
+    }
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS, "Liked successfully", mapLikeToLikeResponseWithUser(saved));
@@ -210,6 +219,48 @@ public class LikeServiceImpl implements LikeService {
                 post.setLikeCount(Math.max(0, post.getLikeCount() + delta));
                 postRepository.save(post);
               });
+    }
+  }
+
+  /** Sends a LIKE notification to the post owner. Skips if liker is the post owner. */
+  private void sendLikeNotification(Long likerId, String postId) {
+    try {
+      postRepository
+          .findById(postId)
+          .ifPresent(
+              post -> {
+                // Don't notify yourself
+                if (post.getUserId().equals(likerId)) return;
+
+                UserDTO actor = fetchUser(likerId);
+                String actorName =
+                    actor != null && actor.getFullName() != null ? actor.getFullName() : "Someone";
+                String actorAvatar = actor != null ? actor.getAvatar() : null;
+
+                notificationProducer.sendNotification(
+                    FeedNotificationEvent.builder()
+                        .actorId(likerId)
+                        .receiverId(post.getUserId())
+                        .type(FeedNotificationType.LIKE.name())
+                        .targetId(postId)
+                        .title("New Like")
+                        .message(actorName + " liked your post")
+                        .actorName(actorName)
+                        .actorAvatar(actorAvatar)
+                        .build());
+              });
+    } catch (Exception e) {
+      log.error("Failed to send like notification for post {}: {}", postId, e.getMessage());
+    }
+  }
+
+  private UserDTO fetchUser(Long userId) {
+    try {
+      ResponseEntity<ApiResponseDTO<UserDTO>> response = userClient.getUserById(userId);
+      return response.getBody() != null ? response.getBody().getData() : null;
+    } catch (Exception e) {
+      log.error("Failed to fetch user {}: {}", userId, e.getMessage());
+      return null;
     }
   }
 }
