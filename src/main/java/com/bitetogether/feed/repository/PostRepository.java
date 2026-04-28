@@ -25,6 +25,8 @@ public interface PostRepository extends MongoRepository<Post, String> {
   Page<Post> findByUserIdInAndCreatedAtAfter(
       List<Long> userIds, Instant createdAt, Pageable pageable);
 
+  Page<Post> findByUserIdInOrderByCreatedAtDesc(List<Long> userIds, Pageable pageable);
+
   Page<Post> findByUserIdInAndCreatedAtAfterAndLatitudeBetweenAndLongitudeBetween(
       List<Long> userIds,
       Instant createdAt,

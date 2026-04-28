@@ -314,51 +314,43 @@ class PostServiceImplTest {
   }
 
   @Test
-  void getNewFeed_whenUserClientThrows_returnsSuccessEmptyList() {
+  void getNewFeedTimeBased_whenUserClientThrows_returnsSuccessEmptyList() {
     Mockito.when(userClient.getFriendList(0, 100)).thenThrow(new RuntimeException("down"));
-    Mockito.when(
-            postRepository.findByUserIdInAndCreatedAtAfterAndLatitudeBetweenAndLongitudeBetween(
-                Mockito.eq(List.of()),
-                Mockito.any(),
-                Mockito.anyDouble(),
-                Mockito.anyDouble(),
-                Mockito.anyDouble(),
-                Mockito.anyDouble(),
-                Mockito.any(Pageable.class)))
+    Mockito.when(postRepository.findByUserIdInOrderByCreatedAtDesc(
+            Mockito.eq(List.of(9L)), Mockito.any(Pageable.class)))
         .thenReturn(new PageImpl<>(List.of()));
+    try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
+      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(9L);
 
-    ApiResponsePaginationDTO<PostResponse> response =
-        service.getNewFeed(1, 1, 10.0, 106.0, 0.2, 0.2);
+      ApiResponsePaginationDTO<PostResponse> response =
+          service.getNewFeedTimeBased(1, 1);
 
-    Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-    Assertions.assertNotNull(response.getData());
-    Assertions.assertTrue(response.getData().isEmpty());
+      Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      Assertions.assertNotNull(response.getData());
+      Assertions.assertTrue(response.getData().isEmpty());
+    }
   }
 
   @Test
-  void getNewFeed_whenFriendBodyNull_returnsSuccessEmptyList() {
+  void getNewFeedTimeBased_whenFriendBodyNull_returnsSuccessEmptyList() {
     Mockito.when(userClient.getFriendList(0, 100)).thenReturn(ResponseEntity.ok(null));
-    Mockito.when(
-            postRepository.findByUserIdInAndCreatedAtAfterAndLatitudeBetweenAndLongitudeBetween(
-                Mockito.eq(List.of()),
-                Mockito.any(),
-                Mockito.anyDouble(),
-                Mockito.anyDouble(),
-                Mockito.anyDouble(),
-                Mockito.anyDouble(),
-                Mockito.any(Pageable.class)))
+    Mockito.when(postRepository.findByUserIdInOrderByCreatedAtDesc(
+            Mockito.eq(List.of(9L)), Mockito.any(Pageable.class)))
         .thenReturn(new PageImpl<>(List.of()));
+    try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
+      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(9L);
 
-    ApiResponsePaginationDTO<PostResponse> response =
-        service.getNewFeed(0, 10, 10.0, 106.0, 0.2, 0.2);
+      ApiResponsePaginationDTO<PostResponse> response =
+          service.getNewFeedTimeBased(0, 10);
 
-    Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
-    Assertions.assertNotNull(response.getData());
-    Assertions.assertTrue(response.getData().isEmpty());
+      Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      Assertions.assertNotNull(response.getData());
+      Assertions.assertTrue(response.getData().isEmpty());
+    }
   }
 
   @Test
-  void getNewFeed_whenHasFriends_andBatchLikeWorks_setsAlreadyLikedTrue() {
+  void getNewFeedTimeBased_whenHasFriends_andBatchLikeWorks_setsAlreadyLikedTrue() {
     FriendDTO friend = Mockito.mock(FriendDTO.class);
     Mockito.when(friend.getId()).thenReturn(2L);
 
@@ -382,15 +374,8 @@ class PostServiceImplTest {
     Like like = new Like();
     like.setPostId("p1");
 
-    Mockito.when(
-            postRepository.findByUserIdInAndCreatedAtAfterAndLatitudeBetweenAndLongitudeBetween(
-                Mockito.eq(List.of(2L)),
-                Mockito.any(),
-                Mockito.anyDouble(),
-                Mockito.anyDouble(),
-                Mockito.anyDouble(),
-                Mockito.anyDouble(),
-                Mockito.any(Pageable.class)))
+    Mockito.when(postRepository.findByUserIdInOrderByCreatedAtDesc(
+            Mockito.eq(List.of(2L, 5L)), Mockito.any(Pageable.class)))
         .thenReturn(feedPage);
 
     Mockito.when(userClient.getUserById(2L)).thenReturn(ResponseEntity.ok(userBody));
@@ -404,7 +389,7 @@ class PostServiceImplTest {
       mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(5L);
 
       ApiResponsePaginationDTO<PostResponse> response =
-          service.getNewFeed(0, 10, 10.0, 106.0, 0.2, 0.2);
+          service.getNewFeedTimeBased(0, 10);
 
       Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       Assertions.assertEquals(1, response.getData().size());

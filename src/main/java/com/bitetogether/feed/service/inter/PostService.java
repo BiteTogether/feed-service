@@ -16,11 +16,13 @@ public interface PostService {
 
   ApiResponseDTO<String> deletePost(String id);
 
-  ApiResponsePaginationDTO<PostResponse> getNewFeed(
+  ApiResponsePaginationDTO<PostResponse> getNewFeedLocationBased(
       int page,
       int size,
       double latitude,
       double longitude,
       double latitudeDelta,
       double longitudeDelta);
+
+  ApiResponsePaginationDTO<PostResponse> getNewFeedTimeBased(int page, int size);
 }

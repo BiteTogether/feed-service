@@ -71,9 +71,21 @@ public class PostController {
 
   @Operation(
       summary = "Get New Feeds",
-      description = "Retrieve posts from the current map viewport.")
+      description = "Retrieve posts from friends ordered by newest.")
   @GetMapping("/new-feeds")
   public ResponseEntity<ApiResponsePaginationDTO<PostResponse>> getNewFeeds(
+      @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
+      @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
+    ApiResponsePaginationDTO<PostResponse> response =
+        postService.getNewFeedTimeBased(page, size);
+    return ResponseEntity.ok(response);
+  }
+
+  @Operation(
+      summary = "Get New Feeds By Location",
+      description = "Retrieve posts from friends within the map viewport.")
+  @GetMapping("/new-feeds/location")
+  public ResponseEntity<ApiResponsePaginationDTO<PostResponse>> getNewFeedsByLocation(
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size,
       @RequestParam double latitude,
@@ -81,7 +93,8 @@ public class PostController {
       @RequestParam double latitudeDelta,
       @RequestParam double longitudeDelta) {
     ApiResponsePaginationDTO<PostResponse> response =
-        postService.getNewFeed(page, size, latitude, longitude, latitudeDelta, longitudeDelta);
+        postService.getNewFeedLocationBased(
+            page, size, latitude, longitude, latitudeDelta, longitudeDelta);
     return ResponseEntity.ok(response);
   }
 
