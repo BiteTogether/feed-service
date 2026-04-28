@@ -1,0 +1,26 @@
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    properties:
+      security-protocol: ${KAFKA_SECURITY_PROTOCOL:SSL}
+
+      ssl:
+        keystore:
+          type: ${KAFKA_SSL_KEYSTORE_TYPE:PKCS12}
+          location: ${KAFKA_SSL_KEYSTORE_LOCATION:classpath:client.keystore.p12}
+          password: ${KAFKA_SSL_KEYSTORE_PASSWORD}
+
+        truststore:
+          type: ${KAFKA_SSL_TRUSTSTORE_TYPE:PKCS12}
+          location: ${KAFKA_SSL_TRUSTSTORE_LOCATION:classpath:client.truststore.jks}
+          password: ${KAFKA_SSL_TRUSTSTORE_PASSWORD}
+
+        endpoint-identification-algorithm: ${KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM:}
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+    topic:
+      feed-notification-events: ${FEED_NOTIFICATION_EVENTS_TOPIC:feed-notification-events}

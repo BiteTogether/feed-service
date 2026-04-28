@@ -16,6 +16,7 @@ import com.bitetogether.feed.repository.PostRepository;
 import com.bitetogether.feed.repository.SavePostRepository;
 import com.bitetogether.feed.repository.httpclient.UserClient;
 import com.bitetogether.feed.service.impl.PostServiceImpl;
+import com.bitetogether.feed.service.inter.FirebaseStorageService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
@@ -44,6 +45,8 @@ class PostServiceImplTest {
 
   @Mock private SavePostRepository savePostRepository;
 
+  @Mock private FirebaseStorageService firebaseStorageService;
+
   @InjectMocks private PostServiceImpl service;
 
   @Test
@@ -68,10 +71,9 @@ class PostServiceImplTest {
     Mockito.when(postMapper.toPostResponse(saved)).thenReturn(mappedResponse);
     Mockito.when(likeRepository.existsByUserIdAndPostId(9L, "p1"))
         .thenThrow(new RuntimeException("db"));
-    Mockito.when(savePostRepository.existsByUserIdAndPostId(9L, "p1")).thenReturn(false);
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(9L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(9L);
 
       ApiResponseDTO<PostResponse> response = service.createPost(request);
 
@@ -102,7 +104,7 @@ class PostServiceImplTest {
     Mockito.when(savePostRepository.existsByUserIdAndPostId(55L, "p1")).thenReturn(true);
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(55L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(55L);
 
       ApiResponseDTO<PostResponse> response = service.getPostById("p1");
 
@@ -170,7 +172,7 @@ class PostServiceImplTest {
         .thenReturn(List.of());
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(7L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(7L);
 
       ApiResponsePaginationDTO<PostResponse> response = service.getPostsByUserId(2L, 0, 10);
 
@@ -203,11 +205,9 @@ class PostServiceImplTest {
 
     Mockito.when(userClient.getUserById(2L)).thenReturn(ResponseEntity.ok(userBody));
     Mockito.when(postMapper.toPostResponse(post)).thenReturn(mappedResponse);
-    Mockito.when(savePostRepository.findByUserIdAndPostIdIn(7L, List.of("p1")))
-        .thenReturn(List.of());
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(7L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(7L);
       Mockito.when(
               likeRepository.findByUserIdAndPostIdIn(Mockito.eq(7L), Mockito.eq(List.of("p1"))))
           .thenThrow(new RuntimeException("db"));
@@ -230,7 +230,7 @@ class PostServiceImplTest {
     Mockito.when(postRepository.findById("p1")).thenReturn(Optional.of(post));
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(2L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(2L);
 
       ApiResponseDTO<PostResponse> response = service.updatePost("p1", new PostRequest());
 
@@ -247,6 +247,7 @@ class PostServiceImplTest {
     Post post = new Post();
     post.setId("p1");
     post.setUserId(2L);
+    post.setPhotoUrl("existing-photo-url");
 
     ApiResponseDTO<UserDTO> userBody = new ApiResponseDTO<>();
     userBody.setData(new UserDTO());
@@ -262,7 +263,7 @@ class PostServiceImplTest {
     Mockito.when(savePostRepository.existsByUserIdAndPostId(2L, "p1")).thenReturn(false);
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(2L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(2L);
 
       ApiResponseDTO<PostResponse> response = service.updatePost("p1", new PostRequest());
 
@@ -284,7 +285,7 @@ class PostServiceImplTest {
     Mockito.when(postRepository.findById("p1")).thenReturn(Optional.of(post));
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(2L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(2L);
 
       ApiResponseDTO<String> response = service.deletePost("p1");
 
@@ -303,7 +304,7 @@ class PostServiceImplTest {
     Mockito.when(postRepository.findById("p1")).thenReturn(Optional.of(post));
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(2L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(2L);
 
       ApiResponseDTO<String> response = service.deletePost("p1");
 
@@ -316,14 +317,14 @@ class PostServiceImplTest {
   @Test
   void getNewFeedTimeBased_whenUserClientThrows_returnsSuccessEmptyList() {
     Mockito.when(userClient.getFriendList(0, 100)).thenThrow(new RuntimeException("down"));
-    Mockito.when(postRepository.findByUserIdInOrderByCreatedAtDesc(
-            Mockito.eq(List.of(9L)), Mockito.any(Pageable.class)))
+    Mockito.when(
+            postRepository.findByUserIdInOrderByCreatedAtDesc(
+                Mockito.eq(List.of(9L)), Mockito.any(Pageable.class)))
         .thenReturn(new PageImpl<>(List.of()));
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(9L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(9L);
 
-      ApiResponsePaginationDTO<PostResponse> response =
-          service.getNewFeedTimeBased(1, 1);
+      ApiResponsePaginationDTO<PostResponse> response = service.getNewFeedTimeBased(1, 1);
 
       Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       Assertions.assertNotNull(response.getData());
@@ -334,14 +335,14 @@ class PostServiceImplTest {
   @Test
   void getNewFeedTimeBased_whenFriendBodyNull_returnsSuccessEmptyList() {
     Mockito.when(userClient.getFriendList(0, 100)).thenReturn(ResponseEntity.ok(null));
-    Mockito.when(postRepository.findByUserIdInOrderByCreatedAtDesc(
-            Mockito.eq(List.of(9L)), Mockito.any(Pageable.class)))
+    Mockito.when(
+            postRepository.findByUserIdInOrderByCreatedAtDesc(
+                Mockito.eq(List.of(9L)), Mockito.any(Pageable.class)))
         .thenReturn(new PageImpl<>(List.of()));
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(9L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(9L);
 
-      ApiResponsePaginationDTO<PostResponse> response =
-          service.getNewFeedTimeBased(0, 10);
+      ApiResponsePaginationDTO<PostResponse> response = service.getNewFeedTimeBased(0, 10);
 
       Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       Assertions.assertNotNull(response.getData());
@@ -374,8 +375,9 @@ class PostServiceImplTest {
     Like like = new Like();
     like.setPostId("p1");
 
-    Mockito.when(postRepository.findByUserIdInOrderByCreatedAtDesc(
-            Mockito.eq(List.of(2L, 5L)), Mockito.any(Pageable.class)))
+    Mockito.when(
+            postRepository.findByUserIdInOrderByCreatedAtDesc(
+                Mockito.eq(List.of(2L, 5L)), Mockito.any(Pageable.class)))
         .thenReturn(feedPage);
 
     Mockito.when(userClient.getUserById(2L)).thenReturn(ResponseEntity.ok(userBody));
@@ -386,10 +388,9 @@ class PostServiceImplTest {
         .thenReturn(List.of());
 
     try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
-      mocked.when(() -> UserContextUtils.getCurrentUserId()).thenReturn(5L);
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(5L);
 
-      ApiResponsePaginationDTO<PostResponse> response =
-          service.getNewFeedTimeBased(0, 10);
+      ApiResponsePaginationDTO<PostResponse> response = service.getNewFeedTimeBased(0, 10);
 
       Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
       Assertions.assertEquals(1, response.getData().size());

@@ -36,7 +36,11 @@ build/
 ### Environment Files ###
 .env
 
-# Firebase credentials - DO NOT COMMIT
+# Secret/credential files
+src/main/resources/client.keystore.p12
+src/main/resources/client.truststore.jks
+
+# Firebase credentials
 src/main/resources/config/*-firebase-adminsdk-*.json
 *firebase-service-account.json
 firebase-adminsdk-*.json
