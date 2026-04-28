@@ -36,8 +36,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.stream.Stream;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -206,7 +206,7 @@ public class PostServiceImpl implements PostService {
 
   @Override
   @Transactional
-  public ApiResponsePaginationDTO<PostResponse> getNewFeed(
+  public ApiResponsePaginationDTO<PostResponse> getNewFeedLocationBased(
       int page,
       int size,
       double latitude,
@@ -234,7 +234,7 @@ public class PostServiceImpl implements PostService {
     }
     Long currentUserId = UserContextUtils.getCurrentUserId();
     List<Long> friendIds =
-        java.util.stream.Stream.concat(extractUserIds(friends).stream(), Stream.of(currentUserId))
+        Stream.concat(extractUserIds(friends).stream(), Stream.of(currentUserId))
             .distinct()
             .toList();
 
@@ -256,6 +256,41 @@ public class PostServiceImpl implements PostService {
             pageable);
 
     // Use batch optimization for alreadyLiked
+    List<PostResponse> responses = mapPostsToResponsesWithBatchLikes(feedPage.getContent());
+
+    return ApiResponseUtil.buildApiResponse(
+        ApiResponseStatus.SUCCESS,
+        ApiResponseStatus.SUCCESS.getDefaultMessage(),
+        responses,
+        feedPage.getNumber(),
+        feedPage.getTotalPages(),
+        feedPage.getTotalElements());
+  }
+
+  @Override
+  @Transactional
+  public ApiResponsePaginationDTO<PostResponse> getNewFeedTimeBased(int page, int size) {
+    log.info("Fetching time-based feed page={}, size={}", page, size);
+    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+    List<FriendDTO> friends;
+    try {
+      ResponseEntity<ApiResponsePaginationDTO<FriendDTO>> friendResponse =
+          userClient.getFriendList(0, 100);
+      friends = friendResponse.getBody() != null ? friendResponse.getBody().getData() : List.of();
+    } catch (Exception ex) {
+      log.error("Failed to fetch friend list: {}", ex.getMessage(), ex);
+      friends = List.of();
+    }
+
+    Long currentUserId = UserContextUtils.getCurrentUserId();
+    List<Long> friendIds =
+        Stream.concat(extractUserIds(friends).stream(), Stream.of(currentUserId))
+            .distinct()
+            .toList();
+
+    Page<Post> feedPage = postRepository.findByUserIdInOrderByCreatedAtDesc(friendIds, pageable);
+
     List<PostResponse> responses = mapPostsToResponsesWithBatchLikes(feedPage.getContent());
 
     return ApiResponseUtil.buildApiResponse(
