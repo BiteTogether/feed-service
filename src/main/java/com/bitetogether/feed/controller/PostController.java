@@ -76,8 +76,7 @@ public class PostController {
   public ResponseEntity<ApiResponsePaginationDTO<PostResponse>> getNewFeeds(
       @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int size) {
-    ApiResponsePaginationDTO<PostResponse> response =
-        postService.getNewFeedTimeBased(page, size);
+    ApiResponsePaginationDTO<PostResponse> response = postService.getNewFeedTimeBased(page, size);
     return ResponseEntity.ok(response);
   }
 
