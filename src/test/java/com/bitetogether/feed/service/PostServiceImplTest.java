@@ -315,6 +315,38 @@ class PostServiceImplTest {
   }
 
   @Test
+  void deletePost_whenOwnerWithPhoto_deletesFileAndPost() {
+    Post post = new Post();
+    post.setId("p1");
+    post.setUserId(2L);
+    post.setPhotoUrl(
+        "https://firebasestorage.googleapis.com/v0/b/bucket/o/posts%2Fimg.jpg?alt=media");
+
+    Mockito.when(postRepository.findById("p1")).thenReturn(Optional.of(post));
+
+    try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(2L);
+
+      ApiResponseDTO<String> response = service.deletePost("p1");
+
+      Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      Mockito.verify(firebaseStorageService).deleteFile(post.getPhotoUrl());
+      Mockito.verify(postRepository).delete(Mockito.same(post));
+      Mockito.verify(savePostRepository).deleteAllByPostId("p1");
+    }
+  }
+
+  @Test
+  void deletePost_whenNotFound_throwsRuntimeException() {
+    Mockito.when(postRepository.findById("missing")).thenReturn(Optional.empty());
+
+    RuntimeException ex =
+        Assertions.assertThrows(RuntimeException.class, () -> service.deletePost("missing"));
+
+    Assertions.assertTrue(ex.getMessage().contains("Post not found"));
+  }
+
+  @Test
   void getNewFeedTimeBased_whenUserClientThrows_returnsSuccessEmptyList() {
     Mockito.when(userClient.getFriendList(0, 100)).thenThrow(new RuntimeException("down"));
     Mockito.when(
@@ -398,5 +430,42 @@ class PostServiceImplTest {
       Assertions.assertFalse(response.getData().get(0).isAlreadySaved());
       Assertions.assertNotNull(response.getData().get(0).getUser());
     }
+  }
+
+  @Test
+  void getNewFeedLocationBased_whenFriendClientFails_returnsSuccessWithOwnPosts() {
+    Mockito.when(userClient.getFriendList(0, 100)).thenThrow(new RuntimeException("down"));
+    Mockito.when(
+            postRepository.findByUserIdInAndCreatedAtAfterAndLatitudeBetweenAndLongitudeBetween(
+                Mockito.eq(List.of(9L)),
+                Mockito.any(),
+                Mockito.anyDouble(),
+                Mockito.anyDouble(),
+                Mockito.anyDouble(),
+                Mockito.anyDouble(),
+                Mockito.any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of()));
+
+    try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(9L);
+
+      ApiResponsePaginationDTO<PostResponse> response =
+          service.getNewFeedLocationBased(0, 10, 10.0, 106.0, 0.1, 0.1);
+
+      Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      Assertions.assertNotNull(response.getData());
+      Assertions.assertTrue(response.getData().isEmpty());
+    }
+  }
+
+  @Test
+  void updatePost_whenNotFound_throwsRuntimeException() {
+    Mockito.when(postRepository.findById("missing")).thenReturn(Optional.empty());
+
+    RuntimeException ex =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> service.updatePost("missing", new PostRequest()));
+
+    Assertions.assertTrue(ex.getMessage().contains("Post not found"));
   }
 }

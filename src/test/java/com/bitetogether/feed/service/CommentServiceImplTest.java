@@ -44,7 +44,49 @@ class CommentServiceImplTest {
 
   @Mock private LikeRepository likeRepository;
 
+  @Mock private NotificationProducer notificationProducer;
+
   @InjectMocks private CommentServiceImpl service;
+
+  @Test
+  void createComment_success_topLevelComment_createsAndNotifies() {
+    CommentRequest request = new CommentRequest();
+    request.setPostId("p1");
+
+    Post post = new Post();
+    post.setId("p1");
+    post.setUserId(5L);
+    post.setCommentCount(3);
+
+    Comment toSave = new Comment();
+    toSave.setId("c1");
+    toSave.setPostId("p1");
+    toSave.setContent("Nice post!");
+
+    CommentResponse mapped = new CommentResponse();
+    mapped.setId("c1");
+
+    ApiResponseDTO<UserDTO> userBody = new ApiResponseDTO<>();
+    userBody.setData(new UserDTO());
+
+    try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(11L);
+
+      Mockito.when(postRepository.findById("p1")).thenReturn(Optional.of(post));
+      Mockito.when(commentMapper.toComment(request)).thenReturn(toSave);
+      Mockito.when(commentRepository.save(Mockito.same(toSave))).thenReturn(toSave);
+      Mockito.when(userClient.getUserById(11L)).thenReturn(ResponseEntity.ok(userBody));
+      Mockito.when(commentMapper.toCommentResponse(toSave)).thenReturn(mapped);
+
+      ApiResponseDTO<CommentResponse> response = service.createComment(request);
+
+      Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      Assertions.assertNotNull(response.getData());
+      Mockito.verify(postRepository).save(Mockito.argThat(p -> p.getCommentCount() == 4));
+      Mockito.verify(notificationProducer)
+          .sendNotification(Mockito.any(com.bitetogether.feed.dto.FeedNotificationEvent.class));
+    }
+  }
 
   @Test
   void createComment_whenPostMissing_returnsNotFound() {

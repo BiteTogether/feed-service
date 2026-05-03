@@ -44,7 +44,146 @@ class LikeServiceImplTest {
 
   @Mock private UserClient userClient;
 
+  @Mock private NotificationProducer notificationProducer;
+
   @InjectMocks private LikeServiceImpl service;
+
+  @Test
+  void like_whenPostLike_sendsNotificationToPostOwner() {
+    LikeRequest request = new LikeRequest();
+    request.setPostId("p1");
+
+    Page<Like> none = new PageImpl<>(List.of());
+
+    Like mappedLike = new Like();
+    mappedLike.setPostId("p1");
+
+    Like saved = new Like();
+    saved.setId("l1");
+    saved.setPostId("p1");
+    saved.setUserId(1L);
+
+    LikeResponse mappedResponse = new LikeResponse();
+    mappedResponse.setId("l1");
+
+    Post post = new Post();
+    post.setId("p1");
+    post.setLikeCount(5);
+    post.setUserId(99L);
+
+    ApiResponseDTO<UserDTO> actorBody = new ApiResponseDTO<>();
+    UserDTO actorDto = new UserDTO();
+    actorDto.setFullName("TestUser");
+    actorBody.setData(actorDto);
+
+    Mockito.when(
+            likeRepository.findByUserIdAndPostId(
+                Mockito.eq(1L), Mockito.eq("p1"), Mockito.any(Pageable.class)))
+        .thenReturn(none);
+    Mockito.when(likeMapper.toLike(Mockito.same(request))).thenReturn(mappedLike);
+    Mockito.when(likeRepository.save(Mockito.any(Like.class))).thenReturn(saved);
+    Mockito.when(likeMapper.toLikeResponse(saved)).thenReturn(mappedResponse);
+    Mockito.when(postRepository.findById("p1")).thenReturn(Optional.of(post));
+    Mockito.when(postRepository.save(Mockito.any(Post.class)))
+        .thenAnswer(inv -> inv.getArgument(0));
+    Mockito.when(userClient.getUserById(1L)).thenReturn(ResponseEntity.ok(actorBody));
+
+    try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(1L);
+
+      ApiResponseDTO<LikeResponse> response = service.like(request);
+
+      Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      Mockito.verify(notificationProducer)
+          .sendNotification(
+              Mockito.argThat(
+                  event ->
+                      event.getReceiverId().equals(99L)
+                          && event.getActorId().equals(1L)
+                          && "LIKE".equals(event.getType())));
+    }
+  }
+
+  @Test
+  void like_whenPostLike_selfLike_doesNotSendNotification() {
+    LikeRequest request = new LikeRequest();
+    request.setPostId("p1");
+
+    Page<Like> none = new PageImpl<>(List.of());
+
+    Like mappedLike = new Like();
+    mappedLike.setPostId("p1");
+
+    Like saved = new Like();
+    saved.setId("l1");
+    saved.setPostId("p1");
+    saved.setUserId(99L);
+
+    LikeResponse mappedResponse = new LikeResponse();
+    mappedResponse.setId("l1");
+
+    Post post = new Post();
+    post.setId("p1");
+    post.setLikeCount(0);
+    post.setUserId(99L);
+
+    Mockito.when(userClient.getUserById(99L)).thenReturn(ResponseEntity.ok(null));
+    Mockito.when(
+            likeRepository.findByUserIdAndPostId(
+                Mockito.eq(99L), Mockito.eq("p1"), Mockito.any(Pageable.class)))
+        .thenReturn(none);
+    Mockito.when(likeMapper.toLike(Mockito.same(request))).thenReturn(mappedLike);
+    Mockito.when(likeRepository.save(Mockito.any(Like.class))).thenReturn(saved);
+    Mockito.when(likeMapper.toLikeResponse(saved)).thenReturn(mappedResponse);
+    Mockito.when(postRepository.findById("p1")).thenReturn(Optional.of(post));
+    Mockito.when(postRepository.save(Mockito.any(Post.class)))
+        .thenAnswer(inv -> inv.getArgument(0));
+
+    try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(99L);
+
+      ApiResponseDTO<LikeResponse> response = service.like(request);
+
+      Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      Mockito.verify(notificationProducer, Mockito.never())
+          .sendNotification(Mockito.any(com.bitetogether.feed.dto.FeedNotificationEvent.class));
+    }
+  }
+
+  @Test
+  void unlike_whenFoundPostLike_deletesAndDecrementsPostCount() {
+    LikeRequest request = new LikeRequest();
+    request.setPostId("p1");
+
+    Like existing = new Like();
+    existing.setId("l1");
+    existing.setPostId("p1");
+    existing.setUserId(1L);
+
+    Page<Like> page = new PageImpl<>(List.of(existing));
+
+    Post post = new Post();
+    post.setId("p1");
+    post.setLikeCount(3);
+
+    try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(1L);
+
+      Mockito.when(
+              likeRepository.findByUserIdAndPostId(
+                  Mockito.eq(1L), Mockito.eq("p1"), Mockito.any(Pageable.class)))
+          .thenReturn(page);
+      Mockito.when(postRepository.findById("p1")).thenReturn(Optional.of(post));
+      Mockito.when(postRepository.save(Mockito.any(Post.class)))
+          .thenAnswer(inv -> inv.getArgument(0));
+
+      ApiResponseDTO<String> response = service.unlike(request);
+
+      Assertions.assertEquals(ApiResponseStatus.SUCCESS.getCode(), response.getStatus());
+      Mockito.verify(likeRepository).delete(existing);
+      Mockito.verify(postRepository).save(Mockito.argThat(p -> p.getLikeCount() == 2));
+    }
+  }
 
   @Test
   void like_whenMissingTargets_returnsBadRequest() {

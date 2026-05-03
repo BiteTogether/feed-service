@@ -160,6 +160,43 @@ class SavePostServiceImplTest {
   }
 
   @Test
+  void savePost_whenBlankPostId_returnsBadRequest() {
+    try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(1L);
+
+      ApiResponseDTO<PostResponse> response = service.savePost("  ");
+
+      Assertions.assertEquals(ApiResponseStatus.BAD_REQUEST.getCode(), response.getStatus());
+      Mockito.verify(postRepository, Mockito.never()).findById(Mockito.anyString());
+    }
+  }
+
+  @Test
+  void savePost_whenNullPostId_returnsBadRequest() {
+    try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(1L);
+
+      ApiResponseDTO<PostResponse> response = service.savePost(null);
+
+      Assertions.assertEquals(ApiResponseStatus.BAD_REQUEST.getCode(), response.getStatus());
+    }
+  }
+
+  @Test
+  void deleteSavedPost_whenNotFound_returnsNotFound() {
+    Mockito.when(savePostRepository.findByUserIdAndPostId(1L, "p99")).thenReturn(Optional.empty());
+
+    try (MockedStatic<UserContextUtils> mocked = Mockito.mockStatic(UserContextUtils.class)) {
+      mocked.when(UserContextUtils::getCurrentUserId).thenReturn(1L);
+
+      ApiResponseDTO<String> response = service.deleteSavedPost("p99");
+
+      Assertions.assertEquals(ApiResponseStatus.NOT_FOUND.getCode(), response.getStatus());
+      Mockito.verify(savePostRepository, Mockito.never()).delete(Mockito.any(SavePost.class));
+    }
+  }
+
+  @Test
   void deleteSavedPost_whenFound_deletesSuccessfully() {
     SavePost existing = new SavePost();
     existing.setId("s1");

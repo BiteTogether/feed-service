@@ -1,0 +1,57 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  cloud:
+    compatibility-verifier:
+      enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+  data:
+    mongodb:
+      database: feed-test-db
+
+server:
+  port: 0
+
+app:
+  security:
+    permit-paths: /actuator/**,/swagger-ui/**,/v3/api-docs/**
+    allowed-origins: "*"
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: false
+
+firebase:
+  credentials-path: config/firebase-service-account.json
+  storage-bucket: test-bucket
+  base-url: https://firebasestorage.googleapis.com/v0/b/test-bucket/o
+
+feign:
+  user-service:
+    url: http://localhost:8081
+
+openapi:
+  info:
+    title: Feed Service Test
+    description: Test API
+    version: 1.0.0
+    contact:
+      name: Test
+      email: test@test.com
+  servers:
+    - url: http://localhost
+      description: Test server
+    - url: http://localhost
+      description: Test server 2
+
+spring.kafka:
+  bootstrap-servers: localhost:9092
+  topic:
+    feed-notification-events: test-feed-notification-events
+
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 7.0.0
