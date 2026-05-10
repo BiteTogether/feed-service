@@ -35,4 +35,14 @@ public interface PostRepository extends MongoRepository<Post, String> {
       Double minLongitude,
       Double maxLongitude,
       Pageable pageable);
+
+  @Query(
+      "{ 'user_id': { $in: ?0 }, '_id': { $ne: ?1 }, 'latitude': { $gte: ?2, $lte: ?3 }, 'longitude': { $gte: ?4, $lte: ?5 } }")
+  List<Post> findNearbyPostsByFriends(
+      List<Long> userIds,
+      String excludePostId,
+      Double minLatitude,
+      Double maxLatitude,
+      Double minLongitude,
+      Double maxLongitude);
 }

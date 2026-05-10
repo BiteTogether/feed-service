@@ -1,5 +1,6 @@
 package com.bitetogether.feed.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,5 +41,7 @@ public class FeedNotificationEvent {
   @Builder.Default private String sourceService = "feed-service";
 
   /** Timestamp when the event was created */
-  @Builder.Default private LocalDateTime timestamp = LocalDateTime.now();
+  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+  @Builder.Default
+  private LocalDateTime timestamp = LocalDateTime.now();
 }

@@ -2,6 +2,7 @@ package com.bitetogether.feed.dto.response;
 
 import com.bitetogether.feed.dto.UserDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
 import lombok.Data;
 
 @Data
@@ -51,4 +52,7 @@ public class PostResponse extends BaseResponse {
 
   @Schema(description = "User who created the post")
   private UserDTO user;
+
+  @Schema(description = "Nearby checkins from friends within 5-10m range")
+  private List<NearbyCheckinDTO> nearbyCheckins;
 }

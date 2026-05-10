@@ -78,8 +78,15 @@ public class CommentServiceImpl implements CommentService {
     post.setCommentCount(post.getCommentCount() + 1);
     postRepository.save(post);
 
-    // Send notification to the post owner
-    sendCommentNotification(currentUserId, post, saved.getContent());
+    // Send notification: reply → parent comment owner, top-level → post owner
+    if (request.getParentCommentId() != null) {
+      Comment parent = commentRepository.findById(request.getParentCommentId()).orElse(null);
+      if (parent != null) {
+        sendReplyNotification(currentUserId, parent, saved.getContent());
+      }
+    } else {
+      sendCommentNotification(currentUserId, post, saved.getContent());
+    }
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS,
@@ -266,6 +273,42 @@ public class CommentServiceImpl implements CommentService {
 
     return ApiResponseUtil.buildApiResponse(
         ApiResponseStatus.SUCCESS, "Replies retrieved successfully", replyResponses);
+  }
+
+  /**
+   * Sends a REPLY notification to the parent comment owner. Skips if replier is the comment owner.
+   */
+  private void sendReplyNotification(Long replierId, Comment parentComment, String replyContent) {
+    try {
+      if (parentComment.getUserId().equals(replierId)) return;
+
+      UserDTO actor = fetchUser(replierId);
+      String actorName =
+          actor != null && actor.getFullName() != null ? actor.getFullName() : "Someone";
+      String actorAvatar = actor != null ? actor.getAvatar() : null;
+
+      String preview =
+          replyContent != null && replyContent.length() > 100
+              ? replyContent.substring(0, 100) + "..."
+              : replyContent;
+
+      notificationProducer.sendNotification(
+          FeedNotificationEvent.builder()
+              .actorId(replierId)
+              .receiverId(parentComment.getUserId())
+              .type(FeedNotificationType.REPLY.name())
+              .targetId(parentComment.getId())
+              .title("New Reply")
+              .message(actorName + " replied to your comment: " + preview)
+              .actorName(actorName)
+              .actorAvatar(actorAvatar)
+              .build());
+    } catch (Exception e) {
+      log.error(
+          "Failed to send reply notification for comment {}: {}",
+          parentComment.getId(),
+          e.getMessage());
+    }
   }
 
   /** Sends a COMMENT notification to the post owner. Skips if commenter is the post owner. */

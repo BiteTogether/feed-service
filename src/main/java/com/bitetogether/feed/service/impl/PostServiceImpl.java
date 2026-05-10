@@ -8,6 +8,7 @@ import com.bitetogether.common.util.UserContextUtils;
 import com.bitetogether.feed.dto.FriendDTO;
 import com.bitetogether.feed.dto.UserDTO;
 import com.bitetogether.feed.dto.request.PostRequest;
+import com.bitetogether.feed.dto.response.NearbyCheckinDTO;
 import com.bitetogether.feed.dto.response.PostResponse;
 import com.bitetogether.feed.mapper.PostMapper;
 import com.bitetogether.feed.model.Like;
@@ -21,7 +22,10 @@ import com.bitetogether.feed.service.inter.FirebaseStorageService;
 import com.bitetogether.feed.service.inter.PostService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,6 +54,9 @@ public class PostServiceImpl implements PostService {
   SavePostRepository savePostRepository;
   FirebaseStorageService firebaseStorageService;
 
+  // ~30 meters in degrees (approximate), to capture posts at the same place/venue
+  private static final double NEARBY_RANGE_DEGREES = 0.0003;
+
   @Override
   @Transactional
   public ApiResponseDTO<PostResponse> createPost(PostRequest postRequest) {
@@ -72,10 +79,10 @@ public class PostServiceImpl implements PostService {
         postRepository
             .findById(id)
             .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
+    PostResponse response = mapPostToPostResponseWithUser(post);
+    populateNearbyCheckins(response, post);
     return ApiResponseUtil.buildApiResponse(
-        ApiResponseStatus.SUCCESS,
-        ApiResponseStatus.SUCCESS.getDefaultMessage(),
-        mapPostToPostResponseWithUser(post));
+        ApiResponseStatus.SUCCESS, ApiResponseStatus.SUCCESS.getDefaultMessage(), response);
   }
 
   @Override
@@ -122,15 +129,21 @@ public class PostServiceImpl implements PostService {
 
     Set<String> finalLikedPostIds = likedPostIds;
     Set<String> finalSavedPostIds = savedPostIds;
-    return posts.stream()
-        .map(
-            post -> {
-              PostResponse response = mapPostToPostResponseWithUser(post);
-              response.setAlreadyLiked(finalLikedPostIds.contains(post.getId()));
-              response.setAlreadySaved(finalSavedPostIds.contains(post.getId()));
-              return response;
-            })
-        .toList();
+    List<PostResponse> responses =
+        posts.stream()
+            .map(
+                post -> {
+                  PostResponse response = mapPostToPostResponseWithUser(post);
+                  response.setAlreadyLiked(finalLikedPostIds.contains(post.getId()));
+                  response.setAlreadySaved(finalSavedPostIds.contains(post.getId()));
+                  return response;
+                })
+            .toList();
+
+    // Populate nearby checkins for all posts in batch
+    populateNearbyCheckinsForBatch(responses, posts);
+
+    return responses;
   }
 
   @Override
@@ -332,5 +345,110 @@ public class PostServiceImpl implements PostService {
 
   private List<Long> extractUserIds(List<FriendDTO> friends) {
     return friends.stream().map(FriendDTO::getId).distinct().toList();
+  }
+
+  private void populateNearbyCheckins(PostResponse response, Post post) {
+    if (post.getLatitude() == null || post.getLongitude() == null) {
+      response.setNearbyCheckins(List.of());
+      return;
+    }
+    try {
+      List<Long> friendIds = getFriendIdsIncludingCurrentUser();
+      double minLat = post.getLatitude() - NEARBY_RANGE_DEGREES;
+      double maxLat = post.getLatitude() + NEARBY_RANGE_DEGREES;
+      double minLng = post.getLongitude() - NEARBY_RANGE_DEGREES;
+      double maxLng = post.getLongitude() + NEARBY_RANGE_DEGREES;
+
+      List<Post> nearbyPosts =
+          postRepository.findNearbyPostsByFriends(
+              friendIds, post.getId(), minLat, maxLat, minLng, maxLng);
+
+      List<NearbyCheckinDTO> checkins = buildNearbyCheckinDTOs(nearbyPosts);
+      response.setNearbyCheckins(checkins);
+    } catch (Exception ex) {
+      log.debug("Could not fetch nearby checkins for post {}: {}", post.getId(), ex.getMessage());
+      response.setNearbyCheckins(List.of());
+    }
+  }
+
+  private void populateNearbyCheckinsForBatch(List<PostResponse> responses, List<Post> posts) {
+    try {
+      List<Long> friendIds = getFriendIdsIncludingCurrentUser();
+      for (int i = 0; i < posts.size(); i++) {
+        Post post = posts.get(i);
+        PostResponse response = responses.get(i);
+        if (post.getLatitude() == null || post.getLongitude() == null) {
+          response.setNearbyCheckins(List.of());
+          continue;
+        }
+        double minLat = post.getLatitude() - NEARBY_RANGE_DEGREES;
+        double maxLat = post.getLatitude() + NEARBY_RANGE_DEGREES;
+        double minLng = post.getLongitude() - NEARBY_RANGE_DEGREES;
+        double maxLng = post.getLongitude() + NEARBY_RANGE_DEGREES;
+
+        List<Post> nearbyPosts =
+            postRepository.findNearbyPostsByFriends(
+                friendIds, post.getId(), minLat, maxLat, minLng, maxLng);
+
+        response.setNearbyCheckins(buildNearbyCheckinDTOs(nearbyPosts));
+      }
+    } catch (Exception ex) {
+      log.debug("Could not fetch nearby checkins for batch: {}", ex.getMessage());
+      responses.forEach(
+          r -> {
+            if (r.getNearbyCheckins() == null) r.setNearbyCheckins(List.of());
+          });
+    }
+  }
+
+  private List<NearbyCheckinDTO> buildNearbyCheckinDTOs(List<Post> nearbyPosts) {
+    if (nearbyPosts.isEmpty()) return List.of();
+
+    // Collect unique user IDs and fetch user info
+    Map<Long, UserDTO> userCache = new HashMap<>();
+    for (Post p : nearbyPosts) {
+      if (!userCache.containsKey(p.getUserId())) {
+        try {
+          ResponseEntity<ApiResponseDTO<UserDTO>> userResponse =
+              userClient.getUserById(p.getUserId());
+          UserDTO userDTO =
+              userResponse.getBody() != null ? userResponse.getBody().getData() : null;
+          if (userDTO != null) userCache.put(p.getUserId(), userDTO);
+        } catch (Exception ex) {
+          log.debug(
+              "Could not fetch user {} for nearby checkin: {}", p.getUserId(), ex.getMessage());
+        }
+      }
+    }
+
+    List<NearbyCheckinDTO> checkins = new ArrayList<>();
+    for (Post p : nearbyPosts) {
+      UserDTO user = userCache.get(p.getUserId());
+      checkins.add(
+          NearbyCheckinDTO.builder()
+              .userId(p.getUserId())
+              .fullName(user != null ? user.getFullName() : null)
+              .avatar(user != null ? user.getAvatar() : null)
+              .postId(p.getId())
+              .placeName(p.getPlaceName())
+              .build());
+    }
+    return checkins;
+  }
+
+  private List<Long> getFriendIdsIncludingCurrentUser() {
+    List<FriendDTO> friends;
+    try {
+      ResponseEntity<ApiResponsePaginationDTO<FriendDTO>> friendResponse =
+          userClient.getFriendList(0, 100);
+      friends = friendResponse.getBody() != null ? friendResponse.getBody().getData() : List.of();
+    } catch (Exception ex) {
+      log.error("Failed to fetch friend list: {}", ex.getMessage(), ex);
+      friends = List.of();
+    }
+    Long currentUserId = UserContextUtils.getCurrentUserId();
+    return Stream.concat(extractUserIds(friends).stream(), Stream.of(currentUserId))
+        .distinct()
+        .toList();
   }
 }

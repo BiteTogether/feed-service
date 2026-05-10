@@ -72,8 +72,10 @@ public class LikeServiceImpl implements LikeService {
     Like saved = likeRepository.save(like);
     updateLikeCount(request, isComment, 1);
 
-    // Send notification to the post owner (not for comment likes, and not to self)
-    if (!isComment && request.getPostId() != null) {
+    // Send notification for post likes and comment likes
+    if (isComment) {
+      sendCommentLikeNotification(currentUserId, request.getCommentId());
+    } else if (request.getPostId() != null) {
       sendLikeNotification(currentUserId, request.getPostId());
     }
 
@@ -219,6 +221,40 @@ public class LikeServiceImpl implements LikeService {
                 post.setLikeCount(Math.max(0, post.getLikeCount() + delta));
                 postRepository.save(post);
               });
+    }
+  }
+
+  /**
+   * Sends a COMMENT_LIKE notification to the comment owner. Skips if liker is the comment owner.
+   */
+  private void sendCommentLikeNotification(Long likerId, String commentId) {
+    try {
+      commentRepository
+          .findById(commentId)
+          .ifPresent(
+              comment -> {
+                if (comment.getUserId().equals(likerId)) return;
+
+                UserDTO actor = fetchUser(likerId);
+                String actorName =
+                    actor != null && actor.getFullName() != null ? actor.getFullName() : "Someone";
+                String actorAvatar = actor != null ? actor.getAvatar() : null;
+
+                notificationProducer.sendNotification(
+                    FeedNotificationEvent.builder()
+                        .actorId(likerId)
+                        .receiverId(comment.getUserId())
+                        .type(FeedNotificationType.COMMENT_LIKE.name())
+                        .targetId(commentId)
+                        .title("New Like")
+                        .message(actorName + " liked your comment")
+                        .actorName(actorName)
+                        .actorAvatar(actorAvatar)
+                        .build());
+              });
+    } catch (Exception e) {
+      log.error(
+          "Failed to send comment like notification for comment {}: {}", commentId, e.getMessage());
     }
   }
 
